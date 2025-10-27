@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 
 class SingleMetadataInformation:
@@ -82,6 +82,24 @@ class NumberPerTimeMetadataInformation(SingleMetadataInformation):
             raise ValueError("per must be one of 's', 'min', or 'h'")
 
         return f"{value:,.1f}{suffix}"
+
+
+class HourMinuteMetadataInformation(SingleMetadataInformation):
+    """Includes a title and an informative time value, which is displayed as hour and minute."""
+
+    def __init__(self, title: str, value: datetime):
+        str_value = value.strftime("%H:%M")
+
+        super().__init__(title=title, value=str_value)
+
+
+class HourMinuteSecondMetadataInformation(SingleMetadataInformation):
+    """Includes a title and an informative time value, which is displayed as hour, minute, and second."""
+
+    def __init__(self, title: str, value: datetime):
+        str_value = value.strftime("%H:%M:%S")
+
+        super().__init__(title=title, value=str_value)
 
 
 if __name__ == "__main__":
