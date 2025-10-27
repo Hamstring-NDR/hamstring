@@ -16,10 +16,9 @@ from benchmarking.test_runner.plotting.boxes import (
     SectionDoubleSubtitleBox,
     SectionContentMetadataBox,
 )
-from benchmarking.test_runner.plotting.metadata_information import (
-    IntegerMetadataInformation,
-    DurationMetadataInformation,
-    NumberPerTimeMetadataInformation,
+from test_runner.plotting.metadata_configuration import (
+    MetadataConfiguration,
+    RampUpMetadata,
 )
 
 logger = get_logger()
@@ -30,13 +29,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent  # heiDGAF direc
 class PDFOverviewGenerator:
     """Combines multiple plots and test information in a PDF document."""
 
-    def __init__(self):
+    def __init__(self, metadata_configuration: MetadataConfiguration):
         self.page_width, self.page_height = 595, 842  # page dimension: A4 portrait
         self.standard_page_margin = {"left": 50, "right": 50, "top": 50, "bottom": 50}
 
         self.document = pymupdf.open()
         self.boxes = {}
         self.row_heights = {}
+
+        self.metadata_configuration = metadata_configuration
 
     def setup_first_page_layout(self):
         """Adds the first page and configures its layout."""
@@ -72,23 +73,7 @@ class PDFOverviewGenerator:
                 width=usable_width,
                 height=self.row_heights["overview_page"][2] * usable_height,
                 top_padding=sum(self.row_heights["overview_page"][:2]) * usable_height,
-            ).fill(
-                {
-                    (1, 1): IntegerMetadataInformation(
-                        title="Total ingoing loglines",
-                        value=29748,
-                    ),
-                    (1, 2): DurationMetadataInformation(
-                        title="Total duration",
-                        value=datetime.timedelta(minutes=14, seconds=17),
-                    ),
-                    (1, 3): NumberPerTimeMetadataInformation(
-                        title="Total duration",
-                        value=34.7,
-                        per="s",
-                    ),
-                }
-            )
+            ).fill(self.metadata_configuration.get())
         )
 
         self.boxes["overview_page"]["main_graph_title_row"].append(
@@ -303,7 +288,14 @@ class PDFOverviewGenerator:
 
 # Only for testing
 if __name__ == "__main__":
-    generator = PDFOverviewGenerator()
+    generator = PDFOverviewGenerator(
+        metadata_configuration=RampUpMetadata(
+            total_ingoing_loglines=46127,
+            total_duration=datetime.timedelta(minutes=14, seconds=17),
+            start_time=datetime.datetime.now(),
+            end_time=datetime.datetime.now() + datetime.timedelta(minutes=4),
+        ),
+    )
 
     generator.setup_first_page_layout()
 
