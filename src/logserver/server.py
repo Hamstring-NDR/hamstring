@@ -41,9 +41,11 @@ COLLECTORS = [
 
 
 class LogServer:
-    """
-    Receives and sends single log lines. Listens for messages via Kafka and reads newly added lines from an input
-    file.
+    """Main component of the Log Storage stage to enter data into the pipeline
+
+    Receives and sends single log lines. Simultaneously, listens for messages via Kafka and reads
+    newly added lines from an input file. Sends every log line to a Kafka topic under which it is obtained by
+    the next stage.
     """
 
     def __init__(self, consume_topic, produce_topics) -> None:
@@ -59,9 +61,7 @@ class LogServer:
         self.server_logs_timestamps = ClickHouseKafkaSender("server_logs_timestamps")
 
     async def start(self) -> None:
-        """
-        Starts fetching messages from Kafka and from the input file.
-        """
+        """Starts the tasks to both fetch messages from Kafka and read them from the input file."""
         logger.info(
             "LogServer started:\n"
             f"    ⤷  receiving on Kafka topic '{self.consume_topic}'\n"
@@ -74,12 +74,13 @@ class LogServer:
         logger.info("LogServer stopped.")
 
     def send(self, message_id: uuid.UUID, message: str) -> None:
-        """
-        Sends a received message using Kafka.
+        """Sends a message using Kafka.
+
+        Logs the time of sending the message to Kafka as a "timestamp_out" event.
 
         Args:
-            message_id (uuid.UUID): UUID of the message
-            message (str): Message to be sent
+            message_id (uuid.UUID): UUID of the message to be sent.
+            message (str): Message to be sent.
         """
         for topic in self.produce_topics:
             self.kafka_produce_handler.produce(topic=topic, data=message)
@@ -93,9 +94,12 @@ class LogServer:
             )
         )
 
-    def fetch_from_kafka(self) -> None:
-        """
-        Starts a loop to continuously listen on the configured Kafka topic. If a message is consumed, it is sent.
+    async def fetch_from_kafka(self) -> None:
+        """Fetches data from the configured Kafka topic in a loop.
+
+        Starts an asynchronous loop to continuously fetch new data from the Kafka topic.
+        When a message is consumed, the unprocessed log line string including
+        its timestamp ("timestamp_in") is logged.
         """
         while True:
             key, value, topic = self.kafka_consume_handler.consume()

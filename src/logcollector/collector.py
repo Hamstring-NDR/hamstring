@@ -40,8 +40,10 @@ COLLECTORS = [
 
 
 class LogCollector:
-    """Consumes incoming log lines from the :class:`LogServer`. Validates all data fields by type and
-    value, invalid loglines are discarded. All valid loglines are sent to the batch sender.
+    """Main component of the Log Collection stage to pre-process and format data
+
+    Consumes incoming loglines from the LogServer. Validates all data fields by type and
+    value, invalid loglines are discarded. All valid loglines are sent to the BatchSender.
     """
 
     def __init__(
@@ -70,16 +72,6 @@ class LogCollector:
         self.failed_protocol_loglines = ClickHouseKafkaSender("failed_loglines")
         self.protocol_loglines = ClickHouseKafkaSender("loglines")
         self.logline_timestamps = ClickHouseKafkaSender("logline_timestamps")
-        self.fill_levels = ClickHouseKafkaSender("fill_levels")
-
-        self.fill_levels.insert(
-            dict(
-                timestamp=datetime.datetime.now(),
-                stage=module_name,
-                entry_type="total_loglines",
-                entry_count=0,
-            )
-        )
 
     async def start(self) -> None:
         """Starts the LogCollector processing loop.

@@ -49,9 +49,11 @@ KAFKA_BROKERS = ",".join(
 
 
 class Prefilter:
-    """
-    Loads the data from the topic ``Prefilter`` and filters it so that only entries with the given status type(s) are
-    kept. Filtered data is then sent using topic ``Inspect``.
+    """Main component of the Log Filtering stage to process and filter batches
+
+    Consumes batches from the Log Collection stage and applies relevance-based filtering
+    using the :class:`LoglineHandler`. Filters out irrelevant loglines and forwards only relevant
+    data to the next pipeline stage for anomaly detection.
     """
 
     def __init__(
@@ -285,8 +287,12 @@ class Prefilter:
             f"{len(self.unfiltered_data)} message(s). Belongs to subnet_id '{self.subnet_id}'."
         )
 
-    def clear_data(self):
-        """Clears the data in the internal data structures."""
+    def clear_data(self) -> None:
+        """Clears all data from the internal data structures.
+
+        Resets both unfiltered_data and filtered_data lists to empty state,
+        preparing for the next batch processing cycle.
+        """
         self.unfiltered_data = []
         self.filtered_data = []
 

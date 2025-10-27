@@ -134,7 +134,12 @@ class InspectorBase(InspectorAbstractBase):
         )
 
     def get_and_fill_data(self) -> None:
-        """Consumes data from KafkaConsumeHandler and stores it for processing."""
+        """Consumes data from Kafka and stores it for processing.
+
+        Fetches batch data from the configured Kafka topic and stores it in internal data structures.
+        If the Inspector is already busy processing data, the consumption is skipped with a warning.
+        Logs batch information and updates database entries for monitoring purposes.
+        """
         if self.messages:
             logger.warning(
                 "Inspector is busy: Not consuming new messages. Wait for the Inspector to finish the "
@@ -195,8 +200,12 @@ class InspectorBase(InspectorAbstractBase):
                 f"    ⤷  Contains data field of {len(self.messages)} message(s). Belongs to subnet_id {key}."
             )
 
-    def clear_data(self):
-        """Clears the data in the internal data structures."""
+    def clear_data(self) -> None:
+        """Clears all data from internal data structures.
+
+        Resets messages, anomalies, feature matrix, and timestamps to prepare
+        the Inspector for processing the next batch of data.
+        """
         self.messages = []
         self.anomalies = []
         self.X = []
@@ -348,12 +357,6 @@ class InspectorBase(InspectorAbstractBase):
         1. Fetches new data from Kafka
         2. Inspects the data for anomalies
         3. Sends suspicious data to detectors
-
-        The loop handles various exceptions:
-        - KafkaMessageFetchException: Logged as debug (transient issue)
-        - IOError: Logged as error and re-raised (critical failure)
-        - ValueError: Logged as debug (data validation issue)
-        - KeyboardInterrupt: Gracefully shuts down the inspector
         """
         logger.info(f"Starting {self.name}")
         while True:

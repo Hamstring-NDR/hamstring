@@ -39,9 +39,7 @@ PLUGIN_PATH = "src.detector.plugins"
 
 
 class WrongChecksum(Exception):  # pragma: no cover
-    """
-    Exception if Checksum is not equal.
-    """
+    """Raises when model checksum validation fails."""
 
     pass
 
