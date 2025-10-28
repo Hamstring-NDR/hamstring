@@ -58,6 +58,7 @@ class BaseTest:
         self.custom_fields = None
         self.progress_bar = None
         self.start_timestamp = None
+        self.end_timestamp = None
         self.plot_generator = None
         self.test_run_directory: Optional[Path] = None
 
@@ -70,15 +71,14 @@ class BaseTest:
 
     def execute(self):
         """Executes the test with the configured parameters."""
-        self.start_timestamp = (
-            datetime.utcnow()
-        )  # UTC timestamp without timezone information
         logger.info(f"{self.test_name}: Start test")
 
         self.progress_bar, self.custom_fields = self._setup_progress_bar()
 
         self.progress_bar.start()
+        self.start_timestamp = TimeUtils.now()
         self._execute_core()
+        self.end_timestamp = TimeUtils.now()
         self.progress_bar.finish()
 
         self.progress_bar = None
