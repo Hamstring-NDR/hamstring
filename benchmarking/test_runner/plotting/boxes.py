@@ -8,7 +8,9 @@ from typing import Optional
 import pymupdf
 
 sys.path.append(os.getcwd())
-from test_runner.plotting.metadata_information import SingleMetadataInformation
+from benchmarking.test_runner.plotting.metadata_information import (
+    SingleMetadataInformation,
+)
 
 
 class BaseBox(pymupdf.Rect):
@@ -228,11 +230,18 @@ class SectionContentMetadataBox(BaseBox):
             boxes_per_row (int): Maximum number of boxes per row. Default: 5
 
         Raises:
-            ValueError if multiple entries point to the same position, or if position is invalid.
+            ValueError if position is invalid.
 
         Returns:
             self
         """
+        for position in metadata_information.keys():
+            if position[0] not in range(1, 3):  # row
+                raise ValueError("Invalid row number")
+
+            if position[1] not in range(1, boxes_per_row + 1):  # column
+                raise ValueError("Invalid column number")
+
         self.page.draw_rect(self, width=0.5)  # outer border
 
         number_of_rows: int = 2
