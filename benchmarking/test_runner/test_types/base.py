@@ -14,6 +14,9 @@ import polars as pl
 import progressbar
 
 sys.path.append(os.getcwd())
+from benchmarking.test_runner.plotting.metadata_configuration import (
+    MetadataConfiguration,
+)
 from src.base.kafka_handler import SimpleKafkaProduceHandler
 from benchmarking.test_runner.plot_generator import PlotGenerator
 from src.base.utils import setup_config
@@ -207,6 +210,10 @@ class BaseTest:
             Time elapsed as datetime.timedelta since the start of the test
         """
         return datetime.now() - self.progress_bar.start_time
+
+    @abstractmethod
+    def __get_metadata_configuration(self) -> MetadataConfiguration:
+        raise NotImplementedError
 
     @staticmethod
     def __cleanup_clickhouse_database():

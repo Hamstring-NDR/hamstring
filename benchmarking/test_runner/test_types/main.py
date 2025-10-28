@@ -2,6 +2,10 @@ import os
 import sys
 
 sys.path.append(os.getcwd())
+from benchmarking.test_runner.plotting.metadata_configuration import (
+    MetadataConfiguration,
+    RampUpMetadata,
+)
 from benchmarking.test_runner.test_types.extended import (
     SingleIntervalTest,
     IntervalBasedTest,
@@ -39,6 +43,10 @@ class BurstTest(IntervalBasedTest):
             messages_per_second_in_intervals=messages_per_second_in_intervals,
         )
 
+    def _BaseTest__get_metadata_configuration(self) -> MetadataConfiguration:
+        # TODO: Implement proper metadata configuration for BurstTest
+        return MetadataConfiguration()
+
 
 class LongTermTest(SingleIntervalTest):
     def __init__(
@@ -57,6 +65,10 @@ class LongTermTest(SingleIntervalTest):
             full_length_in_minutes,
             messages_per_second,
         )
+
+    def _BaseTest__get_metadata_configuration(self) -> MetadataConfiguration:
+        # TODO: Implement proper metadata configuration for LongTermTest
+        return MetadataConfiguration()
 
 
 class MaximumThroughputTest(SingleIntervalTest):
@@ -78,6 +90,10 @@ class MaximumThroughputTest(SingleIntervalTest):
             messages_per_second=messages_per_second,
         )
 
+    def _BaseTest__get_metadata_configuration(self) -> MetadataConfiguration:
+        # TODO: Implement proper metadata configuration for MaximumThroughputTest
+        return MetadataConfiguration()
+
 
 class RampUpTest(IntervalBasedTest):
     """Starts with a low rate and increases the rate in fixed intervals."""
@@ -98,4 +114,11 @@ class RampUpTest(IntervalBasedTest):
             "Ramp Up",
             interval_lengths_in_seconds,
             messages_per_second_in_intervals,
+        )
+
+    def _BaseTest__get_metadata_configuration(self) -> MetadataConfiguration:
+        return RampUpMetadata(
+            # total_ingoing_loglines=None,
+            start_time=self.start_timestamp,
+            end_time=self.end_timestamp,
         )

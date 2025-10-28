@@ -16,7 +16,7 @@ from benchmarking.test_runner.plotting.boxes import (
     SectionDoubleSubtitleBox,
     SectionContentMetadataBox,
 )
-from test_runner.plotting.metadata_configuration import (
+from benchmarking.test_runner.plotting.metadata_configuration import (
     MetadataConfiguration,
     RampUpMetadata,
 )

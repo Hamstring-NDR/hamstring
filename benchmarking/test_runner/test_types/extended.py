@@ -1,11 +1,15 @@
 import os
 import sys
 import time
+from abc import abstractmethod
 from datetime import datetime, timedelta
 
 from confluent_kafka import KafkaException
 
 sys.path.append(os.getcwd())
+from benchmarking.test_runner.plotting.metadata_configuration import (
+    MetadataConfiguration,
+)
 from src.base.utils import setup_config
 from benchmarking.test_runner.test_types.base import BaseTest
 from src.base.log_config import get_logger
@@ -146,6 +150,11 @@ class IntervalBasedTest(BaseTest):
         ):
             raise ValueError("Different lengths of interval lists. Must be equal.")
 
+    @abstractmethod
+    def _BaseTest__get_metadata_configuration(self) -> MetadataConfiguration:
+        """Must be implemented by subclasses."""
+        raise NotImplementedError
+
 
 class SingleIntervalTest(BaseTest):
     """Benchmark Test implementation for Long Term Test:
@@ -211,3 +220,8 @@ class SingleIntervalTest(BaseTest):
             Expected number of messages sent throughout the entire test run, rounded to integers.
         """
         return round(self.messages_per_second * self.full_length_in_minutes * 60)
+
+    @abstractmethod
+    def _BaseTest__get_metadata_configuration(self) -> MetadataConfiguration:
+        """Must be implemented by subclasses."""
+        raise NotImplementedError
