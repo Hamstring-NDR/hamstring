@@ -290,10 +290,10 @@ class PDFOverviewGenerator:
 if __name__ == "__main__":
     generator = PDFOverviewGenerator(
         metadata_configuration=RampUpMetadata(
-            total_ingoing_loglines=46127,
-            total_duration=datetime.timedelta(minutes=14, seconds=17),
-            start_time=datetime.datetime.now(),
-            end_time=datetime.datetime.now() + datetime.timedelta(minutes=4),
+            # total_ingoing_loglines=46127,
+            start_time=datetime.datetime.now()
+            - datetime.timedelta(days=5, minutes=49, seconds=47),
+            end_time=datetime.datetime.now(),
         ),
     )
 
