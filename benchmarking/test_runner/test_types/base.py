@@ -21,7 +21,7 @@ from benchmarking.test_runner.plotting.metadata_configuration import (
     MetadataConfiguration,
 )
 from src.base.kafka_handler import SimpleKafkaProduceHandler
-from benchmarking.test_runner.plot_generator import PlotGenerator
+from benchmarking.test_runner.plotting.plot_generator import PlotGenerator
 from src.base.utils import setup_config, TimeUtils
 from src.train.dataset import Dataset, DatasetLoader
 from src.base.log_config import get_logger
