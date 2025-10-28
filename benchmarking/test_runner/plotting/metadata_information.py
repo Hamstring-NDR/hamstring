@@ -39,7 +39,7 @@ class DurationMetadataInformation(SingleMetadataInformation):
             parts.append(f"{hours}h")
         if minutes:
             parts.append(f"{minutes}min")
-        if seconds:
+        if seconds and hours < 100:
             parts.append(f"{seconds}s")
 
         return " ".join(parts) if parts else "0 s"
@@ -84,22 +84,18 @@ class NumberPerTimeMetadataInformation(SingleMetadataInformation):
         return f"{value:,.1f}{suffix}"
 
 
-class HourMinuteMetadataInformation(SingleMetadataInformation):
-    """Includes a title and an informative time value, which is displayed as hour and minute."""
-
-    def __init__(self, title: str, value: datetime):
-        str_value = value.strftime("%H:%M")
-
-        super().__init__(title=title, value=str_value)
-
-
 class HourMinuteSecondMetadataInformation(SingleMetadataInformation):
     """Includes a title and an informative time value, which is displayed as hour, minute, and second."""
 
-    def __init__(self, title: str, value: datetime):
+    def __init__(self, title: str, value: datetime, include_date: bool = True):
         str_value = value.strftime("%H:%M:%S")
 
-        super().__init__(title=title, value=str_value)
+        if include_date:
+            super().__init__(
+                title=f"{title} ({value.strftime('%Y-%m-%d')})", value=str_value
+            )
+        else:
+            super().__init__(title=title, value=str_value)
 
 
 if __name__ == "__main__":
