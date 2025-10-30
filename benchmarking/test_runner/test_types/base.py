@@ -103,25 +103,25 @@ class BaseTest:
         self.execute()
         self.__check_if_all_data_is_processed()
 
-        file_identifier = str(
+        test_directory_identifier = str(
             datetime.now().strftime("%Y%m%d_%H%M%S")
             + "_"
             + self.test_name.lower().replace(" ", "_")
         )
         self.test_run_directory = Path(
-            f"{BASE_DIR}/benchmark_results/{file_identifier}"
+            f"{BASE_DIR}/benchmark_results/{test_directory_identifier}"
         )
 
-        self.__extract_all_data_from_clickhouse(file_identifier)
+        self.__extract_all_data_from_clickhouse(test_directory_identifier)
         logger.info(
-            f"{self.test_name}: Database entries extracted under {file_identifier}"
+            f"{self.test_name}: Database entries extracted under {test_directory_identifier}"
         )
 
         self.__cleanup_clickhouse_database()
         logger.info(f"{self.test_name} Cleanup: After-test database cleanup finished")
 
         self._generate_plots()
-        self._generate_report()
+        self._generate_report(test_directory_identifier)
 
     @abstractmethod
     def _execute_core(self):
@@ -137,11 +137,15 @@ class BaseTest:
 
         self.plot_generator = None
 
-    def _generate_report(self, output_filename: str = "report"):
+    def _generate_report(
+        self, test_directory_identifier: str, output_filename: str = "report"
+    ):
         """
         Generates the report from the generated result graphs.
 
         Args:
+            test_directory_identifier (str): Identifying name of the benchmark_results directory for this test. Usually
+                                             of the form "20250101_120000_ramp_up".
             output_filename (str): Filename for the output report file without .pdf suffix. Default: "report"
         """
         generator = PDFOverviewGenerator(
@@ -159,7 +163,9 @@ class BaseTest:
         )
 
         # add elements to report pdf
-        generator.setup_first_page_layout()
+        generator.setup_first_page_layout(
+            test_directory_identifier=test_directory_identifier,
+        )
 
         # generate and save report
         generator.save_file(
@@ -373,7 +379,7 @@ class BaseTest:
         self.plot_generator.plot_latency(
             datafiles_to_names=module_to_filepath,
             relative_output_directory_path=relative_output_graph_directory,
-            title="Latency Comparison",
+            # title="Latency Comparison",
             start_time=self.start_timestamp,
         )
 

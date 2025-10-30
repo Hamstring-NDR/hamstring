@@ -20,15 +20,15 @@ class PlotGenerator:
     def plot_latency(
         self,
         datafiles_to_names: dict[str, str],
-        title: str,
         start_time: pd.Timestamp,
         relative_output_directory_path: Path,
+        title: str = None,
         median_smooth: bool = False,
         x_label: str = "Time",
         y_label: str = "Latency",
         y_input_unit: str = "microseconds",
-        fig_width: int | float = 10,
-        fig_height: int | float = 5,
+        fig_width: int | float = 12.5,
+        fig_height: int | float = 4.5,
         color_start_index: int = 0,
         intervals_in_sec: Optional[list[int]] = None,
     ):
@@ -37,9 +37,9 @@ class PlotGenerator:
 
         Args:
             datafiles_to_names (dict[str, str]): Dictionary of file names to show in the legend and their paths
-            title (str): Title of the figure
-            relative_output_directory_path (Path): File path at which the figure should be stored
             start_time (pd.Timestamp): Time to be set as t = 0
+            relative_output_directory_path (Path): File path at which the figure should be stored
+            title (str): Title of the figure, None by default
             median_smooth (bool): True if the data should be smoothed, False by default
             x_label (str): Label x-axis, "Time" by default
             y_label (str): Label y-axis, "Latency" by default

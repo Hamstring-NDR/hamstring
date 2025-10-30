@@ -41,27 +41,48 @@ class PDFOverviewGenerator:
 
     def setup_first_page_layout(
         self,
-        input_file_paths=None,
+        test_directory_identifier: str = None,
+        input_file_paths: dict[str, Path] = None,
     ):
-        """Adds the first page and configures its layout."""
-        if input_file_paths is None:
+        """Adds the first page and configures its layout.
+
+        Args:
+            test_directory_identifier (str): Identifying name of the benchmark_results directory for this test. Usually
+                                             of the form "20250101_120000_ramp_up".
+            input_file_paths (dict[str, Path]): Dictionary of input file paths for each figure position. Is set
+                                                automatically to point to the graphs in
+                                                'heiDGAF/benchmark_results/[TEST_DIRECTORY_IDENTIFIER]/graphs'.
+        """
+        if input_file_paths is None and test_directory_identifier is not None:
             input_file_paths = {
                 "main_graph": Path(
-                    BASE_DIR / "benchmarking/graphs/latencies_comparison.png"
+                    BASE_DIR
+                    / "benchmark_results"
+                    / test_directory_identifier
+                    / "graphs"
+                    / "latency_comparison.png"
                 ),
                 "first_detail_graph": Path(
-                    BASE_DIR / "benchmarking/graphs/latencies_boxplot.png"
+                    BASE_DIR
+                    / "benchmarking/graphs/latencies_boxplot.png"  # TODO: Update
                 ),
                 "second_detail_graph": Path(
-                    BASE_DIR / "benchmarking/graphs/fill_levels_comparison.png"
+                    BASE_DIR
+                    / "benchmarking/graphs/fill_levels_comparison.png"  # TODO: Update
                 ),
                 "third_detail_graph": Path(
-                    BASE_DIR / "benchmarking/graphs/entering_processed_sum_at_time.png"
+                    BASE_DIR
+                    / "benchmarking/graphs/entering_processed_sum_at_time.png"  # TODO: Update
                 ),
                 "fourth_detail_graph": Path(
-                    BASE_DIR / "benchmarking/graphs/entering_processed_bars.png"
+                    BASE_DIR
+                    / "benchmarking/graphs/entering_processed_bars.png"  # TODO: Update
                 ),
             }
+        elif input_file_paths is None and test_directory_identifier is None:
+            raise ValueError(
+                "Either test_directory_identifier or input_file_paths must be set"
+            )
 
         page_margin, usable_width, usable_height = self.__prepare_overview_page()
 
