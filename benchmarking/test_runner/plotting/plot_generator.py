@@ -66,7 +66,9 @@ class PlotGenerator:
             if df.empty:
                 continue  # skip empty datafiles
 
-            df["time"] = (df["time"] - start_time).dt.total_seconds()
+            df["time"] = (
+                df["time"] - start_time.replace(tzinfo=None)
+            ).dt.total_seconds()
 
             if median_smooth:
                 window_size = max(1, len(df) // 100)

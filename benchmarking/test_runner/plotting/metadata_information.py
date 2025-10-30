@@ -37,9 +37,12 @@ class DurationMetadataInformation(SingleMetadataInformation):
         parts = []
         if hours:
             parts.append(f"{hours}h")
-        if minutes:
             parts.append(f"{minutes}min")
-        if seconds and hours < 100:
+            parts.append(f"{seconds}s")
+        elif minutes:
+            parts.append(f"{minutes}min")
+            parts.append(f"{seconds}s")
+        elif seconds:
             parts.append(f"{seconds}s")
 
         return " ".join(parts) if parts else "0 s"
@@ -96,8 +99,3 @@ class HourMinuteSecondMetadataInformation(SingleMetadataInformation):
             )
         else:
             super().__init__(title=title, value=str_value)
-
-
-if __name__ == "__main__":
-    sut = NumberPerTimeMetadataInformation(title="Test", value=749926, per="s")
-    print(sut.title, sut.value)

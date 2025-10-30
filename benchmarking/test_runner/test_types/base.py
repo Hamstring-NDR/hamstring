@@ -267,7 +267,9 @@ class BaseTest:
         with open(sql_file) as file:
             sql_query = file.read()
 
-        logger.info("Wait until all data has been processed...")
+        logger.info(
+            "Wait until all data has been processed. This might take a while..."
+        )
 
         for i in range(number_of_retries):
             number_of_entries = subprocess.check_output(
