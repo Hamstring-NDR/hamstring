@@ -50,12 +50,12 @@ class RampUpMetadata(MetadataConfiguration):
             ),
             (1, 1): HourMinuteSecondMetadataInformation(
                 title="Start time",
-                value=self.start_time,
+                value=self.start_time.astimezone(),
                 include_date=(self.start_time.date() != self.end_time.date()),
             ),
             (2, 1): HourMinuteSecondMetadataInformation(
                 title="End time",
-                value=self.end_time,
+                value=self.end_time.astimezone(),
                 include_date=(self.start_time.date() != self.end_time.date()),
             ),
         }
