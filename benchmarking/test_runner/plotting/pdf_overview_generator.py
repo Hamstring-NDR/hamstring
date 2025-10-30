@@ -39,8 +39,30 @@ class PDFOverviewGenerator:
 
         self.metadata_configuration = metadata_configuration
 
-    def setup_first_page_layout(self):
+    def setup_first_page_layout(
+        self,
+        input_file_paths=None,
+    ):
         """Adds the first page and configures its layout."""
+        if input_file_paths is None:
+            input_file_paths = {
+                "main_graph": Path(
+                    BASE_DIR / "benchmarking/graphs/latencies_comparison.png"
+                ),
+                "first_detail_graph": Path(
+                    BASE_DIR / "benchmarking/graphs/latencies_boxplot.png"
+                ),
+                "second_detail_graph": Path(
+                    BASE_DIR / "benchmarking/graphs/fill_levels_comparison.png"
+                ),
+                "third_detail_graph": Path(
+                    BASE_DIR / "benchmarking/graphs/entering_processed_sum_at_time.png"
+                ),
+                "fourth_detail_graph": Path(
+                    BASE_DIR / "benchmarking/graphs/entering_processed_bars.png"
+                ),
+            }
+
         page_margin, usable_width, usable_height = self.__prepare_overview_page()
 
         self.boxes["overview_page"]["main_title_row"].append(
@@ -103,11 +125,7 @@ class PDFOverviewGenerator:
                 width=usable_width,
                 height=self.row_heights["overview_page"][5] * usable_height,
                 top_padding=sum(self.row_heights["overview_page"][:5]) * usable_height,
-            ).fill(
-                file_path=Path(
-                    BASE_DIR / "benchmarking/graphs/latencies_comparison.png"
-                )
-            )  # TODO: Use correct path
+            ).fill(file_path=input_file_paths["main_graph"])
         )
 
         self.boxes["overview_page"]["first_detail_graphs_titles_row"].append(
@@ -139,9 +157,7 @@ class PDFOverviewGenerator:
                 width=usable_width / 2,
                 height=self.row_heights["overview_page"][8] * usable_height,
                 top_padding=sum(self.row_heights["overview_page"][:8]) * usable_height,
-            ).fill(
-                file_path=Path(BASE_DIR / "benchmarking/graphs/latencies_boxplot.png")
-            )  # TODO: Use correct path
+            ).fill(file_path=input_file_paths["first_detail_graph"])
         )
         self.boxes["overview_page"]["first_detail_graphs_row"].append(
             SectionContentImageBox(
@@ -151,11 +167,7 @@ class PDFOverviewGenerator:
                 height=self.row_heights["overview_page"][8] * usable_height,
                 top_padding=sum(self.row_heights["overview_page"][:8]) * usable_height,
                 left_padding=usable_width / 2,
-            ).fill(
-                file_path=Path(
-                    BASE_DIR / "benchmarking/graphs/fill_levels_comparison.png"
-                )
-            )  # TODO: Use correct path
+            ).fill(file_path=input_file_paths["second_detail_graph"])
         )
 
         self.boxes["overview_page"]["second_detail_graphs_title_row"].append(
@@ -185,11 +197,7 @@ class PDFOverviewGenerator:
                 width=usable_width / 2,
                 height=self.row_heights["overview_page"][11] * usable_height,
                 top_padding=sum(self.row_heights["overview_page"][:11]) * usable_height,
-            ).fill(
-                file_path=Path(
-                    BASE_DIR / "benchmarking/graphs/entering_processed_sum_at_time.png"
-                )
-            )  # TODO: Use correct path
+            ).fill(file_path=input_file_paths["third_detail_graph"])
         )
         self.boxes["overview_page"]["second_detail_graphs_row"].append(
             SectionContentImageBox(
@@ -199,11 +207,7 @@ class PDFOverviewGenerator:
                 height=self.row_heights["overview_page"][11] * usable_height,
                 top_padding=sum(self.row_heights["overview_page"][:11]) * usable_height,
                 left_padding=usable_width / 2,
-            ).fill(
-                file_path=Path(
-                    BASE_DIR / "benchmarking/graphs/entering_processed_bars.png"
-                )
-            )  # TODO: Use correct path
+            ).fill(file_path=input_file_paths["fourth_detail_graph"])
         )
 
     def __prepare_overview_page(self):
