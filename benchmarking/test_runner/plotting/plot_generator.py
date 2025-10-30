@@ -66,20 +66,7 @@ class PlotGenerator:
             if df.empty:
                 continue  # skip empty datafiles
 
-            # Align timezone information
-            if (df["time"].dt.tz is not None) or (
-                start_time.tzinfo is not None
-                and start_time.tzinfo.utcoffset(start_time) is not None
-            ):
-                df["time"] = df["time"].dt.tz_convert("UTC")
-                start_time_aligned = (
-                    start_time.tz_convert("UTC")
-                    if start_time.tzinfo is not None
-                    else start_time.tz_localize("UTC")
-                )
-            else:
-                start_time_aligned = start_time
-            df["time"] = (df["time"] - start_time_aligned).dt.total_seconds()
+            df["time"] = (df["time"] - start_time).dt.total_seconds()
 
             if median_smooth:
                 window_size = max(1, len(df) // 100)
