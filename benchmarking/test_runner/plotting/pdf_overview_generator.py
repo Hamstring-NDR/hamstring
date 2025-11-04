@@ -3,6 +3,7 @@ import os.path
 import sys
 from pathlib import Path
 
+import pandas as pd
 import pymupdf
 
 sys.path.append(os.getcwd())
@@ -20,6 +21,7 @@ from benchmarking.test_runner.plotting.metadata_configuration import (
     MetadataConfiguration,
     RampUpMetadata,
 )
+from benchmarking.test_runner.plotting.plot_generator import PlotGenerator
 
 logger = get_logger()
 
@@ -313,6 +315,39 @@ class PDFOverviewGenerator:
 
 # Only for testing
 if __name__ == "__main__":
+    plot_generator = PlotGenerator()
+
+    MODULE_TO_CSV_FILENAME: dict[str, str] = {
+        "Batch Handler": "batch_handler.csv",
+        "Collector": "collector.csv",
+        "Detector": "detector.csv",
+        "Inspector": "inspector.csv",
+        "Log Server": "logserver.csv",
+        "Prefilter": "prefilter.csv",
+    }
+
+    module_to_filepath = (
+        MODULE_TO_CSV_FILENAME.copy()
+    )  # keep original dictionary unchanged
+    for module in MODULE_TO_CSV_FILENAME.keys():
+        filename = MODULE_TO_CSV_FILENAME[module]
+        module_to_filepath[module] = str(
+            Path(BASE_DIR / "benchmark_results/20251030_181211_ramp_up/data")
+            / "latencies"
+            / filename
+        )
+
+    plot_generator.plot_latency(
+        datafiles_to_names=module_to_filepath,
+        relative_output_directory_path=Path(
+            BASE_DIR / "benchmark_results/20251030_181211_ramp_up/graphs"
+        ),
+        # title="Latency Comparison",
+        start_time=pd.Timestamp(
+            datetime.datetime(year=2025, month=10, day=30, hour=17, minute=7, second=39)
+        ),
+    )
+
     generator = PDFOverviewGenerator(
         metadata_configuration=RampUpMetadata(
             # total_ingoing_loglines=46127,
@@ -322,6 +357,6 @@ if __name__ == "__main__":
         ),
     )
 
-    generator.setup_first_page_layout()
+    generator.setup_first_page_layout("20251030_181211_ramp_up")
 
     generator.save_file(Path("benchmarking/testing_reports"), "report")
