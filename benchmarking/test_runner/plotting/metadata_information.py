@@ -34,18 +34,16 @@ class DurationMetadataInformation(SingleMetadataInformation):
         hours, remainder = divmod(total_seconds, 3600)
         minutes, seconds = divmod(remainder, 60)
 
-        parts = []
-        if hours:
-            parts.append(f"{hours}h")
-            parts.append(f"{minutes}min")
-            parts.append(f"{seconds}s")
-        elif minutes:
-            parts.append(f"{minutes}min")
-            parts.append(f"{seconds}s")
-        elif seconds:
-            parts.append(f"{seconds}s")
-
-        return " ".join(parts) if parts else "0 s"
+        if not hours and not minutes:  # under 1 minute
+            return f"{seconds}s"
+        elif not hours:  # under 1 hour
+            return f"{minutes}min {seconds}s"
+        elif hours < 100:  # under 100 hours
+            return f"{hours}h {minutes}min {seconds}s"
+        elif hours < 1000:  # under 1000 hours
+            return f"{hours}h {minutes}min"
+        else:  # over 1000 hours
+            return f"{hours}h"
 
 
 class NumberPerTimeMetadataInformation(SingleMetadataInformation):
