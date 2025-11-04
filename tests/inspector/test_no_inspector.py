@@ -39,10 +39,10 @@ class TestNoInspector(unittest.TestCase):
             self.inspector.kafka_consume_handler = mock_kafka_consume_handler
             # Manually set up messages for testing
             self.inspector.messages = [
-                {"domain_name": "example.com", "timestamp": "2025-01-01T00:00:00Z"},
+                {"domain_name": "example.com", "ts": "2025-01-01T00:00:00Z"},
                 {
                     "domain_name": "malicious-domain.xyz",
-                    "timestamp": "2025-01-01T00:00:01Z",
+                    "ts": "2025-01-01T00:00:01Z",
                 },
             ]
 

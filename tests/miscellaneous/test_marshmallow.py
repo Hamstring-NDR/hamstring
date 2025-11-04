@@ -16,7 +16,7 @@ class TestClearData(unittest.TestCase):
             "end_timestamp": "2024-05-21T08:31:29",
             "data": [
                 {
-                    "timestamp": "2024-05-21T08:31:28.119",
+                    "ts": "2024-05-21T08:31:28.119",
                     "status": "NOERROR",
                     "src_ip": "192.168.0.105",
                     "dns_ip": "8.8.8.8",

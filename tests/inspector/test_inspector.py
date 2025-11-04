@@ -20,7 +20,7 @@ DEFAULT_DATA = {
     "src_ip": "192.168.0.167",
     "dns_ip": "10.10.0.10",
     "response_ip": "252.79.173.222",
-    "timestamp": "",
+    "ts": "",
     "status": "NXDOMAIN",
     "host_domain_name": "24sata.info",
     "record_type": "A",
@@ -295,7 +295,7 @@ class TestSend(unittest.TestCase):
         sut.begin_timestamp = datetime.now()
         sut.end_timestamp = datetime.now() + timedelta(0, 0, 2)
         data = DEFAULT_DATA
-        data["timestamp"] = datetime.strftime(
+        data["ts"] = datetime.strftime(
             sut.begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
         )
         sut.messages = [data]
@@ -354,7 +354,7 @@ class TestSend(unittest.TestCase):
         sut.begin_timestamp = datetime.now()
         sut.end_timestamp = datetime.now() + timedelta(0, 0, 2)
         data = DEFAULT_DATA
-        data["timestamp"] = datetime.strftime(
+        data["ts"] = datetime.strftime(
             sut.begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
         )
         data["logline_id"] = str(uuid.UUID("99a427a6-ba3f-4aa2-b848-210d994d9108"))

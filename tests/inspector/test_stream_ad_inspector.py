@@ -27,7 +27,7 @@ DEFAULT_DATA = {
     "src_ip": "192.168.0.167",
     "dns_ip": "10.10.0.10",
     "response_ip": "252.79.173.222",
-    "timestamp": "",
+    "ts": "",
     "status": "NXDOMAIN",
     "host_domain_name": "24sata.info",
     "record_type": "A",
