@@ -25,7 +25,7 @@ class TestZeekAnalysisHandler(unittest.TestCase):
         call, args = mock_thread_class.call_args_list[0]
         args_list = args["args"]
         # Assert
-        self.assertIn(["zeek", "-r", "/tmp/test.pcap", "/mock/config.zeek"], args_list)
+        self.assertIn(["zeek", "-C", "-r", "/tmp/test.pcap", "/mock/config.zeek"], args_list)
         mock_thread_class.assert_called_once()
         mock_thread_instance.start.assert_called()
         mock_thread_instance.join.assert_called()

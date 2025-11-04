@@ -64,7 +64,7 @@ class TestDGADetector(unittest.TestCase):
         # overwrite model here again to not interefere with other tests when using it globally
         detector.model = "rf"
         self.maxDiff = None
-        expected_url = "https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/files/?p=%2Frf/ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06/rf.pickle&dl=1"
+        expected_url = "https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/files/?p=%2Frf%2Fba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06%2Frf.pickle&dl=1"
         self.assertEqual(detector.get_model_download_url(), expected_url)
 
     def test_detect(self):

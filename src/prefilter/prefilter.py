@@ -306,12 +306,10 @@ class Prefilter:
 
         """
         logger.info(f"I am {self.consume_topic}")
-        counter = 0
         while True:
             self.get_and_fill_data()
             self.check_data_relevance_using_rules()
             self.send_filtered_data()
-            counter += 1
 
     async def start(self):  # pragma: no cover
         """Starts the ``Prefilter`` processing loop.

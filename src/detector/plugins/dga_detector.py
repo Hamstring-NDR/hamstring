@@ -49,7 +49,8 @@ class DGADetector(DetectorBase):
             if self.model_base_url[-1] == "/"
             else self.model_base_url
         )
-        return f"{self.model_base_url}/files/?p=%2F{self.model}/{self.checksum}/{self.model}.pickle&dl=1"
+        return f"{self.model_base_url}/files/?p=%2F{self.model}%2F{self.checksum}%2F{self.model}.pickle&dl=1"
+               
 
     def get_scaler_download_url(self):
         """
@@ -66,7 +67,7 @@ class DGADetector(DetectorBase):
             if self.model_base_url[-1] == "/"
             else self.model_base_url
         )
-        return f"{self.model_base_url}/files/?p=%2F{self.model}/{self.checksum}/scaler.pickle&dl=1"
+        return f"{self.model_base_url}/files/?p=%2F{self.model}%2F{self.checksum}%2Fscaler.pickle&dl=1"
 
     def predict(self, message):
         """

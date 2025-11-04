@@ -16,8 +16,8 @@ MINIMAL_DETECTOR_CONFIG = {
     "detector_module_name": "test_detector",
     "detector_class_name": "TestDetector",
     "model": "rf",
-    "checksum": "ba1f718179191348fe2abd51644d76191d42a5d967c6844feb3371b6f798bf06",
-    "base_url": "https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/",
+    "checksum": "5db8bfb617e80361362c33b1d1afc6d762c28e9fa9275fb11514a3bdef76bb88",
+    "base_url": "https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021",
     "threshold": "0.005",
     "inspector_name": "no_inspector",
 }
@@ -33,14 +33,13 @@ class TestDetector(DetectorBase):
         super().__init__(consume_topic=consume_topic, detector_config=detector_config)
 
     def get_model_download_url(self):
-        return f"{self.model_base_url}/files/?p=%2F{self.model}_{self.checksum}.pickle&dl=1"
+        return f"{self.model_base_url}/files/?p=%2F{self.model}%2F{self.checksum}%2F{self.model}.pickle&dl=1"
 
     def get_scaler_download_url(self):
-        return f"{self.model_base_url}/files/?p=%2F{self.model}_{self.checksum}_scaler.pickle&dl=1"
+        return f"{self.model_base_url}/files/?p=%2F{self.model}%2F{self.checksum}%2Fscaler.pickle&dl=1"
 
     def predict(self, message):
         pass
-
 
 DEFAULT_DATA = {
     "src_ip": "192.168.0.167",

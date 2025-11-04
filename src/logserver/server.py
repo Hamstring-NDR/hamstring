@@ -94,7 +94,7 @@ class LogServer:
             )
         )
 
-    async def fetch_from_kafka(self) -> None:
+    def fetch_from_kafka(self) -> None:
         """Fetches data from the configured Kafka topic in a loop.
 
         Starts an asynchronous loop to continuously fetch new data from the Kafka topic.
