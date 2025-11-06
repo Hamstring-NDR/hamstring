@@ -2,6 +2,8 @@ import unittest
 from unittest.mock import patch, Mock
 from confluent_kafka import KafkaError
 from src.base.kafka_handler import SimpleKafkaConsumeHandler
+
+
 class TestInit(unittest.TestCase):
     @patch("src.base.kafka_handler.CONSUMER_GROUP_ID", "test_group_id")
     @patch(

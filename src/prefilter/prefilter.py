@@ -41,6 +41,7 @@ COLLECTORS = [
     collector for collector in config["pipeline"]["log_collection"]["collectors"]
 ]
 
+
 class Prefilter:
     """Main component of the Log Filtering stage to process and filter batches
 

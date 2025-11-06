@@ -81,7 +81,7 @@ The Logserver has no further configuration.
 The :class:`LogServer` simultaneously listens on a Kafka topic and reads from an input file. The configuration
 allows changing the Kafka topic to listen on, as well as the file name to read from.
 
-The Kafka topic to listen on takes input by Zeek. The traffic is split protocolwise, thus there are severa topics to listen to.  
+The Kafka topic to listen on takes input by Zeek. The traffic is split protocolwise, thus there are severa topics to listen to.
 These have a common prefix, specified in ``environment.kafka_topics_prefix.pipeline.logserver_in``. The suffix is the protocol name in lower case of the traffic.
 
 Stage 3: Log Collection
@@ -770,5 +770,3 @@ DGA Detector
 ...................
 The :class:`DGADetector` consumes anomalous batches of requests, preprocessed by the StreamAD library.
 It calculates a probability score for each request, to find if a DGA DNS entry was queried.
-
-

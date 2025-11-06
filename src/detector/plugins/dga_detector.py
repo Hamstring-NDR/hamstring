@@ -50,7 +50,6 @@ class DGADetector(DetectorBase):
             else self.model_base_url
         )
         return f"{self.model_base_url}/files/?p=%2F{self.model}%2F{self.checksum}%2F{self.model}.pickle&dl=1"
-               
 
     def get_scaler_download_url(self):
         """

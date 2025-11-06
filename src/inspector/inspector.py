@@ -42,6 +42,7 @@ COLLECTORS = config["pipeline"]["log_collection"]["collectors"]
 DETECTORS = config["pipeline"]["data_analysis"]
 PLUGIN_PATH = "src.inspector.plugins"
 
+
 class InspectorAbstractBase(ABC):  # pragma: no cover
     @abstractmethod
     def __init__(self, consume_topic, produce_topics, config) -> None:

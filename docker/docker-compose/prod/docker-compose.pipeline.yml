@@ -126,4 +126,3 @@ services:
       #        capabilities: [ gpu ]
     environment:
       - GROUP_ID=data_analysis
-

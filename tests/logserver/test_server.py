@@ -60,6 +60,8 @@ class TestStart(unittest.IsolatedAsyncioTestCase):
 
         # Assert
         mock_fetch_from_kafka.assert_called_once()
+
+
 class TestSend(unittest.TestCase):
     @patch("src.logserver.server.ExactlyOnceKafkaProduceHandler")
     @patch("src.logserver.server.ExactlyOnceKafkaConsumeHandler")

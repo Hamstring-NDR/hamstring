@@ -22,9 +22,21 @@ class TestZeekConfigHandler(unittest.TestCase):
             },
             "environment": {
                 "kafka_brokers": [
-                    {"hostname": "kafka1", "external_port": 8097, "node_ip": "192.168.175.69"},
-                    {"hostname": "kafka2", "external_port": 8098, "node_ip": "192.168.175.69"},
-                    {"hostname": "kafka3", "external_port": 8099, "node_ip": "192.168.175.69"},
+                    {
+                        "hostname": "kafka1",
+                        "external_port": 8097,
+                        "node_ip": "192.168.175.69",
+                    },
+                    {
+                        "hostname": "kafka2",
+                        "external_port": 8098,
+                        "node_ip": "192.168.175.69",
+                    },
+                    {
+                        "hostname": "kafka3",
+                        "external_port": 8099,
+                        "node_ip": "192.168.175.69",
+                    },
                 ],
                 "kafka_topics_prefix": {
                     "pipeline": {
@@ -132,8 +144,16 @@ class TestZeekConfigHandler(unittest.TestCase):
         mock_config = {
             "environment": {
                 "kafka_brokers": [
-                    {"hostname": "kafka1", "external_port": 8097, "node_ip": "192.168.175.69"},
-                    {"hostname": "kafka2", "external_port": 8098, "node_ip": "192.168.175.70"},
+                    {
+                        "hostname": "kafka1",
+                        "external_port": 8097,
+                        "node_ip": "192.168.175.69",
+                    },
+                    {
+                        "hostname": "kafka2",
+                        "external_port": 8098,
+                        "node_ip": "192.168.175.70",
+                    },
                 ],
                 "kafka_topics_prefix": {
                     "pipeline": {"logserver_in": "pipeline-logserver_in"}

@@ -41,6 +41,7 @@ class TestDetector(DetectorBase):
     def predict(self, message):
         pass
 
+
 DEFAULT_DATA = {
     "src_ip": "192.168.0.167",
     "dns_ip": "10.10.0.10",
