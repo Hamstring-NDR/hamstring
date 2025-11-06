@@ -220,7 +220,7 @@ class TestBootstrapPrefilteringProcess(unittest.TestCase):
         with patch.object(
             Prefilter, "send_filtered_data", wraps=Prefilter.send_filtered_data
         ) as spy:
-            with self.assertRaises(ValueError):
+            with self.assertRaises(StopIteration):
                 sut.bootstrap_prefiltering_process()
 
 
@@ -700,10 +700,9 @@ class TestSendFilteredData(unittest.TestCase):
         sut.unfiltered_data = ["message"]
         sut.filtered_data = []
 
-        with self.assertRaises(ValueError):
-            sut.send_filtered_data()
+        sut.send_filtered_data()
 
-        mock_produce_handler.add_message.assert_not_called()
+        mock_produce_handler_instance.produce.assert_not_called()
 
     @patch("src.prefilter.prefilter.LoglineHandler")
     @patch("src.prefilter.prefilter.ExactlyOnceKafkaConsumeHandler")
@@ -728,10 +727,9 @@ class TestSendFilteredData(unittest.TestCase):
         sut.unfiltered_data = []
         sut.filtered_data = []
 
-        with self.assertRaises(ValueError):
-            sut.send_filtered_data()
+        sut.send_filtered_data()
 
-        mock_produce_handler.add_message.assert_not_called()
+        mock_produce_handler_instance.produce.assert_not_called()
 
 
 class TestClearData(unittest.TestCase):

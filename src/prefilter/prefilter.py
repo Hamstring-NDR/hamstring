@@ -224,6 +224,7 @@ class Prefilter:
 
         if not self.filtered_data:
             logger.debug("Failed to send data: No filtered data.")
+            return
         data_to_send = {
             "batch_tree_row_id": row_id,
             "batch_id": self.batch_id,
