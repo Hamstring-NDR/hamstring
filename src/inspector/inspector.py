@@ -208,7 +208,13 @@ class InspectorBase(InspectorAbstractBase):
         logger.debug("Cleared messages and timestamps. Inspector is now available.")
 
     def send_data(self):
-        """Pass the anomalous data for the detector unit for further processing"""
+        """Forwards anomalous data to the Detector for further analysis.
+
+        Evaluates anomaly scores against the configured thresholds. If the proportion of
+        anomalous time steps exceeds the threshold, groups messages by client IP and
+        forwards each group as a suspicious batch to the Detector via Kafka. Otherwise,
+        logs the batch as filtered out and updates monitoring databases.
+        """
         row_id = generate_collisions_resistant_uuid()
         if self.subnet_is_suspicious():
             buckets = {}
