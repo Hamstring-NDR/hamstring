@@ -102,15 +102,15 @@ environment:
     - hostname: kafka1
       internal_port: 19092
       external_port: 8097
-      node_ip: 129.206.218.56
+      node_ip: 127.0.0.1
     - hostname: kafka2
       internal_port: 19093   
       external_port: 8098
-      node_ip: 129.206.218.56
+      node_ip: 127.0.0.1
     - hostname: kafka3
       internal_port: 19094  
       external_port: 8099
-      node_ip: 129.206.218.56
+      node_ip: 127.0.0.1
   kafka_topics_prefix:
     pipeline:
       logserver_in: "pipeline-logserver_in"

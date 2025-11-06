@@ -606,55 +606,55 @@ class ExactlyOnceKafkaConsumeHandler(KafkaConsumeHandler):
         except KeyboardInterrupt:
             logger.info("Shutting down KafkaConsumeHandler...")
 
-    @staticmethod
-    def _is_dicts(obj):
-        """Check if the provided object is a list containing only dictionaries.
+    # @staticmethod
+    # def _is_dicts(obj):
+    #     """Check if the provided object is a list containing only dictionaries.
 
-        Args:
-            obj: Object to check.
+    #     Args:
+    #         obj: Object to check.
 
-        Returns:
-            bool: True if obj is a list of dictionaries, False otherwise.
-        """
-        return isinstance(obj, list) and all(isinstance(item, dict) for item in obj)
+    #     Returns:
+    #         bool: True if obj is a list of dictionaries, False otherwise.
+    #     """
+    #     return isinstance(obj, list) and all(isinstance(item, dict) for item in obj)
 
-    def consume_as_object(self) -> tuple[Optional[str], Batch]:
-        """
-        Consume messages and return them as Batch objects.
+    # def consume_as_object(self) -> tuple[Optional[str], Batch]:
+    #     """
+    #     Consume messages and return them as Batch objects.
 
-        Consumes available messages from subscribed topics, decodes the data,
-        and converts it to a structured Batch object using marshmallow schema
-        validation. This method provides type-safe message consumption.
+    #     Consumes available messages from subscribed topics, decodes the data,
+    #     and converts it to a structured Batch object using marshmallow schema
+    #     validation. This method provides type-safe message consumption.
 
-        Returns:
-            tuple[Optional[str], Batch]: A tuple containing:
-                - Message key (str or None).
-                - Batch object containing the deserialized message data.
+    #     Returns:
+    #         tuple[Optional[str], Batch]: A tuple containing:
+    #             - Message key (str or None).
+    #             - Batch object containing the deserialized message data.
 
-        Raises:
-            ValueError: If the message data format is invalid or cannot be
-                        converted to a Batch object.
-            marshmallow.ValidationError: If data doesn't conform to Batch schema.
-        """
-        key, value, topic = self.consume()
+    #     Raises:
+    #         ValueError: If the message data format is invalid or cannot be
+    #                     converted to a Batch object.
+    #         marshmallow.ValidationError: If data doesn't conform to Batch schema.
+    #     """
+    #     key, value, topic = self.consume()
 
-        if not key and not value:
-            # TODO: Change return value to fit the type, maybe switch to raise
-            return None, {}
+    #     if not key and not value:
+    #         # TODO: Change return value to fit the type, maybe switch to raise
+    #         return None, {}
 
-        eval_data: dict = ast.literal_eval(value)
+    #     eval_data: dict = ast.literal_eval(value)
 
-        if self._is_dicts(eval_data.get("data")):
-            eval_data["data"] = eval_data.get("data")
-        else:
-            eval_data["data"] = [
-                ast.literal_eval(item) for item in eval_data.get("data")
-            ]
+    #     if self._is_dicts(eval_data.get("data")):
+    #         eval_data["data"] = eval_data.get("data")
+    #     else:
+    #         eval_data["data"] = [
+    #             ast.literal_eval(item) for item in eval_data.get("data")
+    #         ]
 
-        batch_schema = marshmallow_dataclass.class_schema(Batch)()
-        eval_data: Batch = batch_schema.load(eval_data)
+    #     batch_schema = marshmallow_dataclass.class_schema(Batch)()
+    #     eval_data: Batch = batch_schema.load(eval_data)
 
-        if isinstance(eval_data, Batch):
-            return key, eval_data
-        else:
-            raise ValueError("Unknown data format.")
+    #     if isinstance(eval_data, Batch):
+    #         return key, eval_data
+    #     else:
+    #         raise ValueError("Unknown data format.")

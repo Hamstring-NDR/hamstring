@@ -222,7 +222,7 @@ class Prefilter:
         row_id = generate_collisions_resistant_uuid()
 
         if not self.filtered_data:
-            raise ValueError("Failed to send data: No filtered data.")
+            logger.debug("Failed to send data: No filtered data.")
         data_to_send = {
             "batch_tree_row_id": row_id,
             "batch_id": self.batch_id,

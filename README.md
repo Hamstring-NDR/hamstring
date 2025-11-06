@@ -61,13 +61,18 @@
 ## Getting Started
 
 #### Run **heiDGAF** using Docker Compose:
-<!-- the internal IP is necessary for zeek to work, otherwise it wont find the kafka instances as it is not part fo the network! -->
 ```sh
-HOST_IP=<your-internal-ip> docker compose -f docker/docker-compose.yml up
+HOST_IP=127.0.0.1 docker compose -f docker/docker-compose.yml --profile prod up
 ```
 <p align="center">
   <img src="https://raw.githubusercontent.com/stefanDeveloper/heiDGAF/main/assets/terminal_example.gif?raw=true" alt="Terminal example"/>
 </p>
+
+#### Use the dev profile for testing out changes in docke containers:
+```sh
+HOST_IP=127.0.0.1 docker compose -f docker/docker-compose.yml --profile dev up
+```
+
 
 #### Or run the modules locally on your machine:
 ```sh
@@ -85,6 +90,8 @@ python src/inspector/inspector.py
 ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
 
 
 ## Usage

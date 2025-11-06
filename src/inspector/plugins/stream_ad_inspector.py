@@ -193,7 +193,7 @@ class StreamADInspector(InspectorBase):
     def _get_models(self, models):
         if hasattr(self, "models") and self.models != None and self.models != []:
             logger.info("All models have been successfully loaded!")
-            return
+            return self.models
 
         model_list = []
         for model in models:
@@ -314,6 +314,8 @@ class StreamADInspector(InspectorBase):
 
         ds = CustomDS(self.X, self.X)
         stream = StreamGenerator(ds.data)
+
+        logger.info(f"trying to use the first of these models: {self.models}")
 
         for x in stream.iter_item():
             score = self.models[0].fit_score(x)

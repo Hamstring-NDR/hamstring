@@ -334,7 +334,7 @@ class InspectorBase(InspectorAbstractBase):
             NotImplementedError: If no model configurations are provided
         """
         if self.model_configurations == None or len(self.model_configurations) == 0:
-            logger.warning("No model ist set!")
+            logger.warning("No model is set!")
             raise NotImplementedError(f"No model is set!")
         if len(self.model_configurations) > 1:
             logger.warning(
