@@ -219,6 +219,7 @@ class TestMain(unittest.IsolatedAsyncioTestCase):
         expected_call = args[0]
         mock_asyncio_create_task.assert_called_once_with(expected_call)
 
+    @patch("src.logserver.server.SENSOR_PROTOCOLS", ["dns", "http"])
     @patch("src.logserver.server.logger")
     @patch("src.logserver.server.LogServer")
     @patch("asyncio.create_task")

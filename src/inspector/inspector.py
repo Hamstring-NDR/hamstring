@@ -41,13 +41,6 @@ INSPECTORS = config["pipeline"]["data_inspection"]
 COLLECTORS = config["pipeline"]["log_collection"]["collectors"]
 DETECTORS = config["pipeline"]["data_analysis"]
 PLUGIN_PATH = "src.inspector.plugins"
-KAFKA_BROKERS = ",".join(
-    [
-        f"{broker['hostname']}:{broker['port']}"
-        for broker in config["environment"]["kafka_brokers"]
-    ]
-)
-
 
 class InspectorAbstractBase(ABC):  # pragma: no cover
     @abstractmethod

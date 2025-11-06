@@ -40,13 +40,6 @@ INSPECTORS = config["pipeline"]["data_inspection"]
 COLLECTORS = [
     collector for collector in config["pipeline"]["log_collection"]["collectors"]
 ]
-KAFKA_BROKERS = ",".join(
-    [
-        f"{broker['hostname']}:{broker['port']}"
-        for broker in config["environment"]["kafka_brokers"]
-    ]
-)
-
 
 class Prefilter:
     """Main component of the Log Filtering stage to process and filter batches

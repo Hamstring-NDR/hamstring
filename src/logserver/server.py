@@ -29,12 +29,6 @@ PRODUCE_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"][
 SENSOR_PROTOCOLS = get_zeek_sensor_topic_base_names(config)
 
 READ_FROM_FILE = config["pipeline"]["log_storage"]["logserver"]["input_file"]
-KAFKA_BROKERS = ",".join(
-    [
-        f"{broker['hostname']}:{broker['port']}"
-        for broker in config["environment"]["kafka_brokers"]
-    ]
-)
 COLLECTORS = [
     collector for collector in config["pipeline"]["log_collection"]["collectors"]
 ]

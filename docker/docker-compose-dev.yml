@@ -32,7 +32,7 @@ services:
 
   logserver:
     extends:
-      file: "docker-compose/prod/docker-compose.pipeline.yml"
+      file: "docker-compose/base/docker-compose.pipeline.yml"
       service: logserver
     depends_on:
       kafka1:
@@ -44,7 +44,7 @@ services:
 
   logcollector:
     extends:
-      file: "docker-compose/prod/docker-compose.pipeline.yml"
+      file: "docker-compose/base/docker-compose.pipeline.yml"
       service: logcollector
     depends_on:
       kafka1:
@@ -57,7 +57,7 @@ services:
 
   prefilter:
     extends:
-      file: "docker-compose/prod/docker-compose.pipeline.yml"
+      file: "docker-compose/base/docker-compose.pipeline.yml"
       service: prefilter
     depends_on:
       kafka1:
@@ -69,7 +69,7 @@ services:
 
   inspector:
     extends:
-      file: "docker-compose/prod/docker-compose.pipeline.yml"
+      file: "docker-compose/base/docker-compose.pipeline.yml"
       service: inspector
     depends_on:
       kafka1:
@@ -81,7 +81,7 @@ services:
 
   detector:
     extends:
-      file: "docker-compose/prod/docker-compose.pipeline.yml"
+      file: "docker-compose/base/docker-compose.pipeline.yml"
       service: detector
     depends_on:
       kafka1:

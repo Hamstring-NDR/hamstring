@@ -13,15 +13,15 @@ class TestInit(unittest.TestCase):
         [
             {
                 "hostname": "127.0.0.1",
-                "port": 9999,
+                "internal_port": 9999,
             },
             {
                 "hostname": "127.0.0.2",
-                "port": 9998,
+                "internal_port": 9998,
             },
             {
                 "hostname": "127.0.0.3",
-                "port": 9997,
+                "internal_port": 9997,
             },
         ],
     )
@@ -63,15 +63,15 @@ class TestConsume(unittest.TestCase):
         [
             {
                 "hostname": "127.0.0.1",
-                "port": 9999,
+                "internal_port": 9999,
             },
             {
                 "hostname": "127.0.0.2",
-                "port": 9998,
+                "internal_port": 9998,
             },
             {
                 "hostname": "127.0.0.3",
-                "port": 9997,
+                "internal_port": 9997,
             },
         ],
     )

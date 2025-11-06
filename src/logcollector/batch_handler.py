@@ -23,13 +23,6 @@ logger = get_logger(module_name)
 
 config = setup_config()
 
-KAFKA_BROKERS = ",".join(
-    [
-        f"{broker['hostname']}:{broker['port']}"
-        for broker in config["environment"]["kafka_brokers"]
-    ]
-)
-
 
 class BufferedBatch:
     """Data structure for managing batches, buffers, and timestamps in the log collection pipeline

@@ -133,7 +133,7 @@ class SimpleKafkaProduceHandler(KafkaProduceHandler):
         automatically configured from the global KAFKA_BROKERS setting.
         """
         self.brokers = ",".join(
-            [f"{broker['hostname']}:{broker['port']}" for broker in KAFKA_BROKERS]
+            [f"{broker['hostname']}:{broker['internal_port']}" for broker in KAFKA_BROKERS]
         )
 
         conf = {
@@ -198,7 +198,7 @@ class ExactlyOnceKafkaProduceHandler(KafkaProduceHandler):
             KafkaException: If transaction initialization fails.
         """
         self.brokers = ",".join(
-            [f"{broker['hostname']}:{broker['port']}" for broker in KAFKA_BROKERS]
+            [f"{broker['hostname']}:{broker['internal_port']}" for broker in KAFKA_BROKERS]
         )
 
         conf = {
@@ -322,7 +322,7 @@ class KafkaConsumeHandler(KafkaHandler):
 
         # get brokers
         self.brokers = ",".join(
-            [f"{broker['hostname']}:{broker['port']}" for broker in KAFKA_BROKERS]
+            [f"{broker['hostname']}:{broker['internal_port']}" for broker in KAFKA_BROKERS]
         )
 
         # create consumer

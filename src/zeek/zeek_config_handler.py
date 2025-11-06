@@ -110,7 +110,7 @@ class ZeekConfigurationHandler:
             protocol for protocol in zeek_sensor_configuration["protocols"]
         ]
         self.kafka_brokers = [
-            f"{broker['node_ip']}:{broker['port']}"
+            f"{broker['node_ip']}:{broker['external_port']}"
             for broker in configured_kafka_brokers
         ]
         logger.info(f"Succesfully parse config.yaml")

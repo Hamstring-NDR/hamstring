@@ -13,15 +13,15 @@ class TestInit(unittest.TestCase):
         [
             {
                 "hostname": "127.0.0.1",
-                "port": 9999,
+                "internal_port": 9999,
             },
             {
                 "hostname": "127.0.0.2",
-                "port": 9998,
+                "internal_port": 9998,
             },
             {
                 "hostname": "127.0.0.3",
-                "port": 9997,
+                "internal_port": 9997,
             },
         ],
     )
@@ -53,15 +53,15 @@ class TestInit(unittest.TestCase):
         [
             {
                 "hostname": "127.0.0.1",
-                "port": 9999,
+                "internal_port": 9999,
             },
             {
                 "hostname": "127.0.0.2",
-                "port": 9998,
+                "internal_port": 9998,
             },
             {
                 "hostname": "127.0.0.3",
-                "port": 9997,
+                "internal_port": 9997,
             },
         ],
     )
@@ -94,15 +94,15 @@ class TestSend(unittest.TestCase):
         [
             {
                 "hostname": "127.0.0.1",
-                "port": 9999,
+                "internal_port": 9999,
             },
             {
                 "hostname": "127.0.0.2",
-                "port": 9998,
+                "internal_port": 9998,
             },
             {
                 "hostname": "127.0.0.3",
-                "port": 9997,
+                "internal_port": 9997,
             },
         ],
     )
@@ -137,15 +137,15 @@ class TestSend(unittest.TestCase):
         [
             {
                 "hostname": "127.0.0.1",
-                "port": 9999,
+                "internal_port": 9999,
             },
             {
                 "hostname": "127.0.0.2",
-                "port": 9998,
+                "internal_port": 9998,
             },
             {
                 "hostname": "127.0.0.3",
-                "port": 9997,
+                "internal_port": 9997,
             },
         ],
     )
@@ -164,15 +164,15 @@ class TestSend(unittest.TestCase):
         [
             {
                 "hostname": "127.0.0.1",
-                "port": 9999,
+                "internal_port": 9999,
             },
             {
                 "hostname": "127.0.0.2",
-                "port": 9998,
+                "internal_port": 9998,
             },
             {
                 "hostname": "127.0.0.3",
-                "port": 9997,
+                "internal_port": 9997,
             },
         ],
     )
@@ -215,15 +215,15 @@ class TestCommitTransactionWithRetry(unittest.TestCase):
         [
             {
                 "hostname": "127.0.0.1",
-                "port": 9999,
+                "internal_port": 9999,
             },
             {
                 "hostname": "127.0.0.2",
-                "port": 9998,
+                "internal_port": 9998,
             },
             {
                 "hostname": "127.0.0.3",
-                "port": 9997,
+                "internal_port": 9997,
             },
         ],
     )
@@ -245,15 +245,15 @@ class TestCommitTransactionWithRetry(unittest.TestCase):
         [
             {
                 "hostname": "127.0.0.1",
-                "port": 9999,
+                "internal_port": 9999,
             },
             {
                 "hostname": "127.0.0.2",
-                "port": 9998,
+                "internal_port": 9998,
             },
             {
                 "hostname": "127.0.0.3",
-                "port": 9997,
+                "internal_port": 9997,
             },
         ],
     )
@@ -281,15 +281,15 @@ class TestCommitTransactionWithRetry(unittest.TestCase):
         [
             {
                 "hostname": "127.0.0.1",
-                "port": 9999,
+                "internal_port": 9999,
             },
             {
                 "hostname": "127.0.0.2",
-                "port": 9998,
+                "internal_port": 9998,
             },
             {
                 "hostname": "127.0.0.3",
-                "port": 9997,
+                "internal_port": 9997,
             },
         ],
     )
@@ -317,15 +317,15 @@ class TestCommitTransactionWithRetry(unittest.TestCase):
         [
             {
                 "hostname": "127.0.0.1",
-                "port": 9999,
+                "internal_port": 9999,
             },
             {
                 "hostname": "127.0.0.2",
-                "port": 9998,
+                "internal_port": 9998,
             },
             {
                 "hostname": "127.0.0.3",
-                "port": 9997,
+                "internal_port": 9997,
             },
         ],
     )
@@ -353,15 +353,15 @@ class TestDel(unittest.TestCase):
         [
             {
                 "hostname": "127.0.0.1",
-                "port": 9999,
+                "internal_port": 9999,
             },
             {
                 "hostname": "127.0.0.2",
-                "port": 9998,
+                "internal_port": 9998,
             },
             {
                 "hostname": "127.0.0.3",
-                "port": 9997,
+                "internal_port": 9997,
             },
         ],
     )
