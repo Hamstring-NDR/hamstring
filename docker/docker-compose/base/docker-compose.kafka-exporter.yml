@@ -4,7 +4,7 @@ services:
     container_name: kafka-exporter
     ports:
       - "9308:9308"
-    command: ["--kafka.server=kafka1:8097", "--kafka.server=kafka2:8098", "--kafka.server=kafka3:8099"]
+    command: ["--kafka.server=kafka1:19092", "--kafka.server=kafka2:19093", "--kafka.server=kafka3:19094"]
     networks:
       - heidgaf
 networks:

@@ -47,9 +47,6 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
       KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
       KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
-      # TODO: delete if everything works again with kafka after tests 
-      # KAFKA_CFG_MESSAGE_MAX_BYTES: 1048576000 # 100 MB
-      # KAFKA_CFG_REPLICA_FETCH_MAX_BYTES: 1048576000 # 100 MB
     volumes:
       - kafka-data1:/var/lib/kafka/data
 
@@ -83,9 +80,6 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
       KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
       KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
-      # TODO: delete after tests 
-      # KAFKA_CFG_MESSAGE_MAX_BYTES: 1048576000 # 100 MB
-      # KAFKA_CFG_REPLICA_FETCH_MAX_BYTES: 1048576000 # 100 MB
     volumes:
       - kafka-data2:/var/lib/kafka/data
 

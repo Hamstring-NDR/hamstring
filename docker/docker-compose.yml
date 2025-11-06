@@ -28,82 +28,19 @@ services:
     depends_on:
       zookeeper:
         condition: service_healthy
-
-
-  logserver:
-    extends:
-      file: "docker-compose/prod/docker-compose.pipeline.yml"
-      service: logserver
-    depends_on:
-      kafka1:
-        condition: service_healthy
-      kafka2:
-        condition: service_healthy
-      kafka3:
-        condition: service_healthy
-
-  logcollector:
-    extends:
-      file: "docker-compose/prod/docker-compose.pipeline.yml"
-      service: logcollector
-    depends_on:
-      kafka1:
-        condition: service_healthy
-      kafka2:
-        condition: service_healthy
-      kafka3:
-        condition: service_healthy
-
-
-  prefilter:
-    extends:
-      file: "docker-compose/prod/docker-compose.pipeline.yml"
-      service: prefilter
-    depends_on:
-      kafka1:
-        condition: service_healthy
-      kafka2:
-        condition: service_healthy
-      kafka3:
-        condition: service_healthy
-
-  inspector:
-    extends:
-      file: "docker-compose/prod/docker-compose.pipeline.yml"
-      service: inspector
-    depends_on:
-      kafka1:
-        condition: service_healthy
-      kafka2:
-        condition: service_healthy
-      kafka3:
-        condition: service_healthy
-
-  detector:
-    extends:
-      file: "docker-compose/prod/docker-compose.pipeline.yml"
-      service: detector
-    depends_on:
-      kafka1:
-        condition: service_healthy
-      kafka2:
-        condition: service_healthy
-      kafka3:
-        condition: service_healthy
-
   clickhouse-server:
     extends:
-      file: "docker-compose/prod/docker-compose.clickhouse.yml"
+      file: "docker-compose/base/docker-compose.clickhouse.yml"
       service: clickhouse-server
 
   grafana:
     extends:
-      file: "docker-compose/prod/docker-compose.grafana.yml"
+      file: "docker-compose/base/docker-compose.grafana.yml"
       service: grafana
 
   prometheus:
     extends:
-      file: "docker-compose/prod/docker-compose.prometheus.yml"
+      file: "docker-compose/base/docker-compose.prometheus.yml"
       service: prometheus
 
   kafka-exporter:
@@ -119,9 +56,18 @@ services:
         condition: service_healthy
       clickhouse-server:
         condition: service_healthy
-  monitoring_agent:
+  zeek1:
     extends:
-      file: "docker-compose/base/docker-compose.monitoring.yml"
+      file: "docker-compose/base/docker-compose.zeek.yml"
+      service: zeek
+    environment:
+      - CONTAINER_NAME=zeek1
+    volumes:
+      - ../data/test_pcaps/:/opt/static_files
+
+  monitoring_agent-dev:
+    extends:
+      file: "docker-compose/dev/docker-compose.monitoring.yml"
       service: monitoring_agent
     depends_on:
       kafka1:
@@ -132,15 +78,155 @@ services:
         condition: service_healthy
       clickhouse-server:
         condition: service_healthy
+    profiles: ["dev"]
 
-  zeek1:
+  monitoring_agent:
     extends:
-      file: "docker-compose/base/docker-compose.zeek.yml"
-      service: zeek
-    environment:
-      - CONTAINER_NAME=zeek1
-    volumes:
-      - ../data/test_pcaps/:/opt/static_files
+      file: "docker-compose/prod/docker-compose.monitoring.yml"
+      service: monitoring_agent
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+      clickhouse-server:
+        condition: service_healthy
+    profiles: ["prod"]
+
+  logserver-dev:
+    extends:
+      file: "docker-compose/dev/docker-compose.pipeline.yml"
+      service: logserver
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+    profiles: ["dev"]
+
+  logserver:
+    extends:
+      file: "docker-compose/prod/docker-compose.pipeline.yml"
+      service: logserver
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+    profiles: ["prod"]
+
+  logcollector-dev:
+    extends:
+      file: "docker-compose/dev/docker-compose.pipeline.yml"
+      service: logcollector
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+    profiles: ["dev"]
+
+
+  logcollector:
+    extends:
+      file: "docker-compose/prod/docker-compose.pipeline.yml"
+      service: logcollector
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+    profiles: ["prod"]
+
+  prefilter-dev:
+    extends:
+      file: "docker-compose/dev/docker-compose.pipeline.yml"
+      service: prefilter
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+    profiles: ["dev"]
+
+  prefilter:
+    extends:
+      file: "docker-compose/prod/docker-compose.pipeline.yml"
+      service: prefilter
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+    profiles: ["prod"]
+
+  inspector-dev:
+    extends:
+      file: "docker-compose/dev/docker-compose.pipeline.yml"
+      service: inspector
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+    profiles: ["dev"]
+
+  inspector:
+    extends:
+      file: "docker-compose/prod/docker-compose.pipeline.yml"
+      service: inspector
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+    profiles: ["prod"]
+
+
+  detector-dev:
+    extends:
+      file: "docker-compose/dev/docker-compose.pipeline.yml"
+      service: detector
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+    profiles: ["dev"]
+
+  detector:
+    extends:
+      file: "docker-compose/prod/docker-compose.pipeline.yml"
+      service: detector
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+    profiles: ["prod"]
+
 networks:
   heidgaf:
     driver: bridge
