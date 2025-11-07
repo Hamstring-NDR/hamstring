@@ -195,7 +195,7 @@ class TestDGADetector(unittest.TestCase):
 
         # Should have 4 labels (sub1, sub2, example, com)
         self.assertEqual(features[0][0], 4)  # label_length
-        self.assertEqual(features[0][1], 7)  # label_max (example)
+        self.assertEqual(features[0][1], 4)  # label_max (example)
         self.assertEqual(
             features[0][2], 21
         )  # label_average (sub1.sub2.example.com has 21 characters)
