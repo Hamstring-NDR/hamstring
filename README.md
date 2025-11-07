@@ -56,18 +56,23 @@
 
 ## About the Project
 
-![Pipeline overview](https://raw.githubusercontent.com/stefanDeveloper/heiDGAF/main/docs/media/heidgaf_overview_detailed.drawio.png?raw=true)
+![Pipeline overview](./assets/heidgaf_architecture.svg)
 
 ## Getting Started
 
 #### Run **heiDGAF** using Docker Compose:
-
 ```sh
-HOST_IP=127.0.0.1 docker compose -f docker/docker-compose.yml up
+HOST_IP=127.0.0.1 docker compose -f docker/docker-compose.yml --profile prod up
 ```
 <p align="center">
   <img src="https://raw.githubusercontent.com/stefanDeveloper/heiDGAF/main/assets/terminal_example.gif?raw=true" alt="Terminal example"/>
 </p>
+
+#### Use the dev profile for testing out changes in docke containers:
+```sh
+HOST_IP=127.0.0.1 docker compose -f docker/docker-compose.yml --profile dev up
+```
+
 
 #### Or run the modules locally on your machine:
 ```sh
@@ -85,6 +90,8 @@ python src/inspector/inspector.py
 ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
 
 
 ## Usage
@@ -275,6 +282,31 @@ This will create a `rules.txt` file containing the innards of the model, explain
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+
+### Data
+
+> [!IMPORTANT]
+> We support custom schemes.
+
+Depending on your data and usecase, you can customize the data scheme to fit your needs.
+The below configuration is part of the [main configuration file](./config.yaml) which is detailed in our [documentation](https://heidgaf.readthedocs.io/en/latest/usage.html#id2)
+
+```yml
+loglines:
+  fields:
+    - [ "timestamp", RegEx, '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$' ]
+    - [ "status_code", ListItem, [ "NOERROR", "NXDOMAIN" ], [ "NXDOMAIN" ] ]
+    - [ "src_ip", IpAddress ]
+    - [ "dns_server_ip", IpAddress ]
+    - [ "domain_name", RegEx, '^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$' ]
+    - [ "record_type", ListItem, [ "A", "AAAA" ] ]
+    - [ "response_ip", IpAddress ]
+    - [ "size", RegEx, '^\d+b$' ]
+```
+
+
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- CONTRIBUTING -->
 ## Contributing
