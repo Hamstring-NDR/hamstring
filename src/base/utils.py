@@ -150,7 +150,7 @@ class IpAddressUtils:
 
 class TimeUtils:
     @staticmethod
-    def now():
+    def now() -> datetime.timestamp:
         """Returns the current UTC time as timezone-aware datetime timestamp.
         Must be used for all internal timestamps."""
         return datetime.now(timezone.utc)

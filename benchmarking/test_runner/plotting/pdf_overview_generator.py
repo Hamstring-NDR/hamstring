@@ -45,6 +45,7 @@ class PDFOverviewGenerator:
         self,
         test_directory_identifier: str = None,
         input_file_paths: dict[str, Path] = None,
+        benchmark_test_date: datetime.date = datetime.date.today(),
     ):
         """Adds the first page and configures its layout.
 
@@ -54,6 +55,7 @@ class PDFOverviewGenerator:
             input_file_paths (dict[str, Path]): Dictionary of input file paths for each figure position. Is set
                                                 automatically to point to the graphs in
                                                 'heiDGAF/benchmark_results/[TEST_DIRECTORY_IDENTIFIER]/graphs'.
+            benchmark_test_date: Date on which the test finished.
         """
         if input_file_paths is None and test_directory_identifier is not None:
             input_file_paths = {
@@ -97,7 +99,8 @@ class PDFOverviewGenerator:
                 top_padding=sum(self.row_heights["overview_page"][:0]) * usable_height,
             ).fill(
                 test_name="ramp-up",
-                date=datetime.date.today(),  # TODO: Update to use actual date
+                test_date=benchmark_test_date,
+                generation_date=datetime.date.today(),
             )
         )
 
@@ -332,7 +335,7 @@ if __name__ == "__main__":
     for module in MODULE_TO_CSV_FILENAME.keys():
         filename = MODULE_TO_CSV_FILENAME[module]
         module_to_filepath[module] = str(
-            Path(BASE_DIR / "benchmark_results/20251030_181211_ramp_up/data")
+            Path(BASE_DIR / "benchmark_results/20251030_184629_ramp_up/data")
             / "latencies"
             / filename
         )
@@ -340,23 +343,32 @@ if __name__ == "__main__":
     plot_generator.plot_latency(
         datafiles_to_names=module_to_filepath,
         relative_output_directory_path=Path(
-            BASE_DIR / "benchmark_results/20251030_181211_ramp_up/graphs"
+            BASE_DIR / "benchmark_results/20251030_184629_ramp_up/graphs"
         ),
         # title="Latency Comparison",
         start_time=pd.Timestamp(
-            datetime.datetime(year=2025, month=10, day=30, hour=17, minute=7, second=39)
+            datetime.datetime(
+                year=2025, month=10, day=30, hour=17, minute=39, second=20
+            )
         ),
     )
 
     generator = PDFOverviewGenerator(
         metadata_configuration=RampUpMetadata(
             # total_ingoing_loglines=46127,
-            start_time=datetime.datetime.now()
-            - datetime.timedelta(days=5, minutes=49, seconds=47),
-            end_time=datetime.datetime.now(),
+            start_time=datetime.datetime(
+                year=2025, month=10, day=30, hour=17, minute=39, second=20
+            ),
+            end_time=datetime.datetime(
+                year=2025, month=10, day=30, hour=17, minute=39, second=20
+            )
+            + datetime.timedelta(minutes=3),
         ),
     )
 
-    generator.setup_first_page_layout("20251030_181211_ramp_up")
+    generator.setup_first_page_layout(
+        test_directory_identifier="20251030_184629_ramp_up",
+        benchmark_test_date=datetime.date(2025, 10, 30),
+    )
 
     generator.save_file(Path("benchmarking/testing_reports"), "report")

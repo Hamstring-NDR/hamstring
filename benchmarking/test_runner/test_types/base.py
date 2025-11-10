@@ -165,6 +165,7 @@ class BaseTest:
         # add elements to report pdf
         generator.setup_first_page_layout(
             test_directory_identifier=test_directory_identifier,
+            benchmark_test_date=datetime.date(self.end_timestamp),  # TODO: Test
         )
 
         # generate and save report

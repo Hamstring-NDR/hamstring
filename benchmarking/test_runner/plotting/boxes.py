@@ -58,7 +58,12 @@ class BaseBox(pymupdf.Rect):
 class MainTitleBox(BaseBox):
     """Contains the main title of a page, consisting of the test name and the date."""
 
-    def fill(self, test_name: str, date: datetime.date):
+    def fill(
+        self,
+        test_name: str,
+        test_date: datetime.date,
+        generation_date: datetime.date = datetime.date.today(),
+    ):
         self.page.draw_rect(self, fill=(0,), fill_opacity=0.1, width=0.5)  # border
         self.page.insert_htmlbox(  # title
             self._get_padded(),
@@ -72,11 +77,17 @@ class MainTitleBox(BaseBox):
             "font-family: sans-serif; font-size: 8px; font-weight: bold;"
             "padding: 8px 0}",
         )
-        self.page.insert_htmlbox(  # date
+        self.page.insert_htmlbox(  # benchmark test date
             self._get_padded(),
-            str(date),
+            str(test_date),
             css="* {font-family: sans-serif; font-size: 13px; text-align: right}",
         )
+        if generation_date != test_date:
+            self.page.insert_htmlbox(  # report generation date
+                self._get_padded(),
+                f"Report generated: {str(generation_date)}",
+                css="* {font-family: sans-serif; font-size: 8px; padding: 8px 0; text-align: right}",
+            )
 
         return self
 
