@@ -12,7 +12,7 @@ Usage
 Getting Started
 ---------------
 
-To use heiDGAF, just use the provided ``docker-compose.yml`` to quickly bootstrap your environment:
+To use HAMSTRING, just use the provided ``docker-compose.yml`` to quickly bootstrap your environment:
 
 .. code-block:: console
 

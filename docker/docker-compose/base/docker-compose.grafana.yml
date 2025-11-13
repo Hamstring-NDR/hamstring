@@ -3,7 +3,7 @@ services:
     image: grafana/grafana:11.2.2-security-01
     container_name: grafana
     networks:
-      - heidgaf
+      - hamstring
     restart: "unless-stopped"
     ports:
       - "3000:3000"

@@ -10,7 +10,7 @@ on:
 
 env:
   REGISTRY: docker.io
-  IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/heidgaf
+  IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/hamstring
 
 
 jobs:

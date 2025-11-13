@@ -7,7 +7,7 @@ services:
       - ch_data:/var/lib/clickhouse/
       - ch_logs:/var/log/clickhouse-server/
     networks:
-      - heidgaf
+      - hamstring
     restart: "unless-stopped"
     ports:
       - "8123:8123"

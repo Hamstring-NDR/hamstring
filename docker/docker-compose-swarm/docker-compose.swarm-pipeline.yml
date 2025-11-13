@@ -1,8 +1,8 @@
 services:
   logserver:
-    image: stefan96/heidgaf-logserver
+    image: stefan96/hamstring-logserver
     networks:
-      - heidgaf
+      - hamstring
     deploy:
 #      resources:
 #        limits:
@@ -12,7 +12,7 @@ services:
 #          cpus: '1'
 #          memory: 256m
       placement:
-        constraints: [ node.hostname == heidgaf-2 ]
+        constraints: [ node.hostname == hamstring-2 ]
     volumes:
       - ../default.txt:/opt/file.txt
       - ../../config.yaml:/app/config.yaml
@@ -20,9 +20,9 @@ services:
       - GROUP_ID=log_storage
 
   logcollector:
-    image: stefan96/heidgaf-logcollector
+    image: stefan96/hamstring-logcollector
     networks:
-      - heidgaf
+      - hamstring
     deploy:
 #      resources:
 #        limits:
@@ -32,16 +32,16 @@ services:
 #          cpus: '1'
 #          memory: 256m
       placement:
-        constraints: [ node.hostname == heidgaf-2 ]
+        constraints: [ node.hostname == hamstring-2 ]
     volumes:
       - ../../config.yaml:/app/config.yaml
     environment:
       - GROUP_ID=log_collection
 
   prefilter:
-    image: stefan96/heidgaf-prefilter
+    image: stefan96/hamstring-prefilter
     networks:
-      - heidgaf
+      - hamstring
     deploy:
       mode: "replicated"
       replicas: 1
@@ -53,16 +53,16 @@ services:
 #          cpus: '1'
 #          memory: 256m
       placement:
-        constraints: [ node.hostname == heidgaf-2 ]
+        constraints: [ node.hostname == hamstring-2 ]
     volumes:
       - ../../config.yaml:/app/config.yaml
     environment:
       - GROUP_ID=log_filtering
 
   inspector:
-    image: stefan96/heidgaf-inspector
+    image: stefan96/hamstring-inspector
     networks:
-      - heidgaf
+      - hamstring
     deploy:
       mode: "replicated"
       replicas: 1
@@ -74,7 +74,7 @@ services:
 #          cpus: '1'
 #          memory: 256m
       placement:
-        constraints: [ node.hostname == heidgaf-2 ]
+        constraints: [ node.hostname == hamstring-2 ]
     volumes:
       - ../../config.yaml:/app/config.yaml
     environment:
@@ -82,9 +82,9 @@ services:
       - NUMBER_OF_INSTANCES=1
 
   detector:
-    image: stefan96/heidgaf-detector
+    image: stefan96/hamstring-detector
     networks:
-      - heidgaf
+      - hamstring
     deploy:
       mode: "replicated"
       replicas: 1
@@ -100,12 +100,12 @@ services:
 #                kind: 'gpu'
 #                value: 1
       placement:
-        constraints: [ node.hostname == heidgaf-2 ]
+        constraints: [ node.hostname == hamstring-2 ]
     volumes:
       - ../../config.yaml:/app/config.yaml
     environment:
       - GROUP_ID=data_analysis
 
 networks:
-  heidgaf:
+  hamstring:
     external: true

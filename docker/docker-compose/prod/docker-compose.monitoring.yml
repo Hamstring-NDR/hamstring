@@ -4,7 +4,7 @@ services:
     #   context: ../../..
     #   dockerfile: docker/dockerfiles/Dockerfile.monitoring
     #   network: host
-    image: stefan96/heidgaf-monitoring:v1.0.0
+    image: stefan96/hamstring-monitoring:v1.0.0
     restart: "unless-stopped"
     # platform: linux/x86_64
     volumes:
@@ -21,6 +21,6 @@ services:
       grafana:
         condition: service_healthy
     networks:
-      - heidgaf
+      - hamstring
     environment:
       - GROUP_ID=monitoring_agent

@@ -228,7 +228,7 @@ services:
     profiles: ["prod"]
 
 networks:
-  heidgaf:
+  hamstring:
     driver: bridge
     ipam:
       driver: default

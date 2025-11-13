@@ -4,10 +4,10 @@ services:
     #   context: ../../..
     #   dockerfile: docker/dockerfiles/Dockerfile.logserver
     #   network: host
-    image: stefan96/heidgaf-logserver:v1.0.0
+    image: stefan96/hamstring-logserver:v1.0.0
     restart: "unless-stopped"
     networks:
-      heidgaf:
+      hamstring:
     # platform: linux/x86_64
     # memswap_limit: 768m
     # deploy:
@@ -28,12 +28,12 @@ services:
     #   context: ../../..
     #   dockerfile: docker/dockerfiles/Dockerfile.logcollector
     #   network: host
-    image: stefan96/heidgaf-logcollector:v1.0.0
+    image: stefan96/hamstring-logcollector:v1.0.0
     restart: "unless-stopped"
     volumes:
       - ../../../config.yaml:/app/config.yaml
     networks:
-      heidgaf:
+      hamstring:
     # platform: linux/x86_64
     # memswap_limit: 768m
     # deploy:
@@ -52,12 +52,12 @@ services:
     #   context: ../../..
     #   dockerfile: docker/dockerfiles/Dockerfile.prefilter
     #   network: host
-    image: stefan96/heidgaf-prefilter:v1.0.0
+    image: stefan96/hamstring-prefilter:v1.0.0
     restart: "unless-stopped"
     volumes:
       - ../../../config.yaml:/app/config.yaml
     networks:
-      heidgaf:
+      hamstring:
     # platform: linux/x86_64
     deploy:
       mode: "replicated"
@@ -77,12 +77,12 @@ services:
     #   context: ../../..
     #   dockerfile: docker/dockerfiles/Dockerfile.inspector
     #   network: host
-    image: stefan96/heidgaf-inspector:v1.0.0
+    image: stefan96/hamstring-inspector:v1.0.0
     restart: "unless-stopped"
     volumes:
       - ../../../config.yaml:/app/config.yaml
     networks:
-      heidgaf:
+      hamstring:
     # platform: linux/x86_64
     deploy:
       mode: "replicated"
@@ -103,12 +103,12 @@ services:
     #   context: ../../..
     #   dockerfile: docker/dockerfiles/Dockerfile.detector
     #   network: host
-    image: stefan96/heidgaf-detector:v1.0.0
+    image: stefan96/hamstring-detector:v1.0.0
     restart: "unless-stopped"
     volumes:
       - ../../../config.yaml:/app/config.yaml
     networks:
-      heidgaf:
+      hamstring:
     # platform: linux/x86_64
     deploy:
       mode: "replicated"

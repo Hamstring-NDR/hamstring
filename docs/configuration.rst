@@ -113,7 +113,7 @@ If a ``debug`` field is set to ``false``, only info-level logging is shown. By d
 Pipeline Configuration
 ......................
 
-The following parameters control the behavior of each stage of the heiDGAF pipeline, including the
+The following parameters control the behavior of each stage of the HAMSTRING pipeline, including the
 functionality of the modules.
 
 ``pipeline.log_storage``

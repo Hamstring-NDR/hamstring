@@ -702,7 +702,7 @@ Stage 6: Detection
 Overview
 --------
 
-The **Detection** stage is the core of the heiDGAF pipeline. It consumes **suspicious batches** passed from the `Inspector`, applies **pre-trained ML models** to classify individual DNS requests, and issues alerts based on aggregated probabilities.
+The **Detection** stage is the core of the HAMSTRING pipeline. It consumes **suspicious batches** passed from the `Inspector`, applies **pre-trained ML models** to classify individual DNS requests, and issues alerts based on aggregated probabilities.
 
 The pre-trained models used here are licensed under **EUPL‑1.2** and built from the following datasets:
 

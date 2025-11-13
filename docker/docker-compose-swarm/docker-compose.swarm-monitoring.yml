@@ -6,7 +6,7 @@ services:
       - ch_data:/var/lib/clickhouse/
       - ch_logs:/var/log/clickhouse-server/
     networks:
-      - heidgaf
+      - hamstring
     ports:
       - "8123:8123"
       - "9000:9000"
@@ -17,14 +17,14 @@ services:
 #      retries: 3
     deploy:
       placement:
-        constraints: [ node.hostname == heidgaf-3 ]
+        constraints: [ node.hostname == hamstring-3 ]
       restart_policy:
         condition: on-failure
 
   grafana:
     image: grafana/grafana:11.2.2-security-01
     networks:
-      - heidgaf
+      - hamstring
     ports:
       - "3000:3000"
     volumes:
@@ -42,14 +42,14 @@ services:
 #      retries: 3
     deploy:
       placement:
-        constraints: [ node.hostname == heidgaf-3 ]
+        constraints: [ node.hostname == hamstring-3 ]
       restart_policy:
         condition: on-failure
 
   monitoring_agent:
-    image: stefan96/heidgaf-monitoring
+    image: stefan96/hamstring-monitoring
     networks:
-      - heidgaf
+      - hamstring
     environment:
       - GROUP_ID=monitoring_agent
     depends_on:
@@ -59,12 +59,12 @@ services:
       - clickhouse-server
     deploy:
       placement:
-        constraints: [ node.hostname == heidgaf-3 ]
+        constraints: [ node.hostname == hamstring-3 ]
       restart_policy:
         condition: on-failure
 
 networks:
-  heidgaf:
+  hamstring:
     external: true
 
 volumes:
