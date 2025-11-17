@@ -8,7 +8,7 @@ import time
 from abc import abstractmethod
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Any
 
 import polars as pl
 import progressbar
@@ -25,6 +25,7 @@ from benchmarking.test_runner.plotting.plot_generator import PlotGenerator
 from src.base.utils import setup_config, TimeUtils
 from src.train.dataset import Dataset, DatasetLoader
 from src.base.log_config import get_logger
+from benchmarking.utils import ReadWriteUtils
 
 logger = get_logger()
 config = setup_config()
@@ -51,7 +52,11 @@ class BaseTest:
     """Base class for any benchmark test."""
 
     def __init__(
-        self, name: str, total_message_count: int, is_interval_based: bool = False
+        self,
+        name: str,
+        parameters: dict[str, Any],
+        total_message_count: int,
+        is_interval_based: bool = False,
     ):
         """
         Args:
@@ -63,12 +68,16 @@ class BaseTest:
 
         self.custom_fields = None
         self.progress_bar = None
-        self.start_timestamp = None
-        self.end_timestamp = None
         self.plot_generator = None
         self.test_run_directory: Optional[Path] = None
 
-        self.test_name = name
+        self.metadata: dict[str, Any] = {
+            "test_name": name,
+            "start_timestamp": None,
+            "end_timestamp": None,
+            "parameters": parameters,
+        }
+
         self.total_message_count = total_message_count
         self.is_interval_based = is_interval_based
 
@@ -77,28 +86,30 @@ class BaseTest:
 
     def execute(self):
         """Executes the test with the configured parameters."""
-        logger.info(f"{self.test_name}: Start test")
+        logger.info(f"{self.metadata['test_name']}: Start test")
 
         self.progress_bar, self.custom_fields = self._setup_progress_bar()
 
         self.progress_bar.start()
-        self.start_timestamp = TimeUtils.now()
+        self.metadata["start_timestamp"] = TimeUtils.now()
         self._execute_core()
-        self.end_timestamp = TimeUtils.now()
+        self.metadata["end_timestamp"] = TimeUtils.now()
         self.progress_bar.finish()
 
         self.progress_bar = None
         self.custom_fields = None
 
-        logger.info(f"{self.test_name}: Finish test")
+        logger.info(f"{self.metadata['test_name']}: Finish test")
 
     def execute_and_generate_report(self):
         """Handles the entire benchmark test procedure required for generating a report. Executes the test and
         generates the report from the resulting data."""
-        self.__validate_filename(self.test_name)
+        self.__validate_filename(self.metadata["test_name"])
 
         self.__cleanup_clickhouse_database()
-        logger.info(f"{self.test_name} Preparation: Database cleanup finished")
+        logger.info(
+            f"{self.metadata['test_name']} Preparation: Database cleanup finished"
+        )
 
         self.execute()
         self.__check_if_all_data_is_processed()
@@ -106,7 +117,7 @@ class BaseTest:
         test_directory_identifier = str(
             datetime.now().strftime("%Y%m%d_%H%M%S")
             + "_"
-            + self.test_name.lower().replace(" ", "_")
+            + self.metadata["test_name"].lower().replace(" ", "_")
         )
         self.test_run_directory = Path(
             f"{BASE_DIR}/benchmark_results/{test_directory_identifier}"
@@ -114,14 +125,17 @@ class BaseTest:
 
         self.__extract_all_data_from_clickhouse(test_directory_identifier)
         logger.info(
-            f"{self.test_name}: Database entries extracted under {test_directory_identifier}"
+            f"{self.metadata['test_name']}: Database entries extracted under {test_directory_identifier}"
         )
 
         self.__cleanup_clickhouse_database()
-        logger.info(f"{self.test_name} Cleanup: After-test database cleanup finished")
+        logger.info(
+            f"{self.metadata['test_name']} Cleanup: After-test database cleanup finished"
+        )
 
         self._generate_plots()
         self._generate_report(test_directory_identifier)
+        self._write_metadata_to_file()
 
     @abstractmethod
     def _execute_core(self):
@@ -165,7 +179,9 @@ class BaseTest:
         # add elements to report pdf
         generator.setup_first_page_layout(
             test_directory_identifier=test_directory_identifier,
-            benchmark_test_date=datetime.date(self.end_timestamp),  # TODO: Test
+            benchmark_test_date=datetime.date(
+                self.metadata["end_timestamp"]
+            ),  # TODO: Test
         )
 
         # generate and save report
@@ -219,6 +235,12 @@ class BaseTest:
         """
         return datetime.now() - self.progress_bar.start_time
 
+    def _write_metadata_to_file(self) -> None:
+        ReadWriteUtils.write_metadata(
+            metadata_filepath=self.test_run_directory / "metadata.yml",
+            data=self.metadata,
+        )
+
     @abstractmethod
     def __get_metadata_configuration(self) -> MetadataConfiguration:
         raise NotImplementedError
@@ -251,6 +273,12 @@ class BaseTest:
                     f"TRUNCATE TABLE {table};",
                 ]
             ).check_returncode()
+
+    @staticmethod
+    def __store_additional_metadata():
+        # Idea: Go through the files in sql_queries/metadata and use the filename as description and the result of
+        # the query as the value. Store both in the metadata.yml under a new section 'additional_values'.
+        pass
 
     @staticmethod
     def __check_if_all_data_is_processed(

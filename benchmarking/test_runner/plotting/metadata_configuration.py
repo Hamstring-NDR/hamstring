@@ -14,7 +14,7 @@ from benchmarking.test_runner.plotting.metadata_information import (
 
 class MetadataConfiguration:
     @abstractmethod
-    def get(self) -> dict[tuple[int, int], SingleMetadataInformation]:
+    def get(self, metadata: dict) -> dict[tuple[int, int], SingleMetadataInformation]:
         raise NotImplementedError
 
 
@@ -29,11 +29,18 @@ class RampUpMetadata(MetadataConfiguration):
             raise ValueError("End time must be after start time")
 
         self.total_ingoing_loglines = 12345  # TODO: Only for testing
-        self.total_duration = end_time - start_time
-        self.start_time = start_time
-        self.end_time = end_time
 
-    def get(self) -> dict[tuple[int, int], SingleMetadataInformation]:
+    def get(self, metadata: dict) -> dict[tuple[int, int], SingleMetadataInformation]:
+        try:
+            start_timestamp = metadata["start_timestamp"]
+            end_timestamp = metadata["end_timestamp"]
+            parameters = metadata["parameters"]
+
+            # calculation
+            total_duration = end_timestamp - start_timestamp
+        except Exception:
+            raise ValueError("Malformed or missing metadata values")
+
         return {
             # (1, 1): IntegerMetadataInformation(
             #     title="Total ingoing loglines",
@@ -41,21 +48,21 @@ class RampUpMetadata(MetadataConfiguration):
             # ),
             (1, 2): DurationMetadataInformation(
                 title="Total duration",
-                value=self.total_duration,
+                value=total_duration,
             ),
             (2, 2): NumberPerTimeMetadataInformation(
                 title="Ingoing logline rate",
-                value=self.total_ingoing_loglines / self.total_duration.total_seconds(),
+                value=self.total_ingoing_loglines / total_duration.total_seconds(),
                 per="s",
             ),
             (1, 1): HourMinuteSecondMetadataInformation(
                 title="Start time",
-                value=self.start_time.astimezone(),
-                include_date=(self.start_time.date() != self.end_time.date()),
+                value=start_timestamp.astimezone(),
+                include_date=(start_timestamp.date() != end_timestamp.date()),
             ),
             (2, 1): HourMinuteSecondMetadataInformation(
                 title="End time",
-                value=self.end_time.astimezone(),
-                include_date=(self.start_time.date() != self.end_time.date()),
+                value=end_timestamp.astimezone(),
+                include_date=(start_timestamp.date() != end_timestamp.date()),
             ),
         }

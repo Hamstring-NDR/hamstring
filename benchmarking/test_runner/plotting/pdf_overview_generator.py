@@ -21,6 +21,7 @@ from benchmarking.test_runner.plotting.metadata_configuration import (
     MetadataConfiguration,
     RampUpMetadata,
 )
+from benchmarking.utils import ReadWriteUtils
 from benchmarking.test_runner.plotting.plot_generator import PlotGenerator
 
 logger = get_logger()
@@ -54,7 +55,9 @@ class PDFOverviewGenerator:
                                              of the form "20250101_120000_ramp_up".
             input_file_paths (dict[str, Path]): Dictionary of input file paths for each figure position. Is set
                                                 automatically to point to the graphs in
-                                                'heiDGAF/benchmark_results/[TEST_DIRECTORY_IDENTIFIER]/graphs'.
+                                                'heiDGAF/benchmark_results/[TEST_DIRECTORY_IDENTIFIER]/graphs' and
+                                                the metadata file
+                                                'heiDGAF/benchmark_results/[TEST_DIRECTORY_IDENTIFIER]/metadata.yml'.
             benchmark_test_date: Date on which the test finished.
         """
         if input_file_paths is None and test_directory_identifier is not None:
@@ -82,11 +85,19 @@ class PDFOverviewGenerator:
                     BASE_DIR
                     / "benchmarking/graphs/entering_processed_bars.png"  # TODO: Update
                 ),
+                "metadata": Path(
+                    BASE_DIR
+                    / "benchmark_results"
+                    / test_directory_identifier
+                    / "metadata.yml"
+                ),
             }
         elif input_file_paths is None and test_directory_identifier is None:
             raise ValueError(
                 "Either test_directory_identifier or input_file_paths must be set"
             )
+
+        metadata = ReadWriteUtils.load_metadata(input_file_paths["metadata"])
 
         page_margin, usable_width, usable_height = self.__prepare_overview_page()
 
@@ -121,7 +132,7 @@ class PDFOverviewGenerator:
                 width=usable_width,
                 height=self.row_heights["overview_page"][2] * usable_height,
                 top_padding=sum(self.row_heights["overview_page"][:2]) * usable_height,
-            ).fill(self.metadata_configuration.get())
+            ).fill(self.metadata_configuration.get(metadata))
         )
 
         self.boxes["overview_page"]["main_graph_title_row"].append(

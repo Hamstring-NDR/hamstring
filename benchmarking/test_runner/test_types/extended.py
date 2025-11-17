@@ -36,29 +36,41 @@ class IntervalBasedTest(BaseTest):
             messages_per_second_in_intervals: List of message rates per interval. Must have same length as
                                               interval_lengths_in_seconds, if a list is specified there.
         """
-        self.messages_per_second_in_intervals = messages_per_second_in_intervals
-        self.interval_lengths_in_seconds = self.__normalize_intervals(
-            interval_lengths_in_seconds
-        )
 
-        self.__validate_interval_data()
+        parameters = {
+            "messages_per_second_in_intervals": messages_per_second_in_intervals,
+            "interval_lengths_in_seconds": self.__normalize_intervals(
+                messages_per_second_in_intervals,
+                interval_lengths_in_seconds,
+            ),
+        }
+
+        self.__validate_interval_data(parameters)
 
         super().__init__(
             name=name,
+            parameters=parameters,
             is_interval_based=True,
-            total_message_count=self.__get_total_message_count(),
+            total_message_count=self.__get_total_message_count(parameters),
         )
 
     def _execute_core(self):
         """Executes the test by repeatedly executing single intervals.
         Updates the progress bar's interval information."""
+        messages_per_second_in_intervals = self.metadata["parameters"][
+            "messages_per_second_in_intervals"
+        ]
+        interval_lengths_in_seconds = self.metadata["parameters"][
+            "interval_lengths_in_seconds"
+        ]
         current_index = 0
-        for i in range(len(self.messages_per_second_in_intervals)):
+
+        for i in range(len(messages_per_second_in_intervals)):
             self.custom_fields["interval"].update_mapping(interval_number=i + 1)
             current_index = self.__execute_single_interval(
                 current_index=current_index,
-                messages_per_second=self.messages_per_second_in_intervals[i],
-                length_in_seconds=self.interval_lengths_in_seconds[i],
+                messages_per_second=messages_per_second_in_intervals[i],
+                length_in_seconds=interval_lengths_in_seconds[i],
             )
 
     def __execute_single_interval(
@@ -112,23 +124,34 @@ class IntervalBasedTest(BaseTest):
         Returns:
             Duration of the full test run as datetime.timedelta, i.e. sum of all intervals
         """
-        return timedelta(seconds=sum(self.interval_lengths_in_seconds))
+        interval_lengths_in_seconds = self.metadata["parameters"][
+            "interval_lengths_in_seconds"
+        ]
 
-    def __get_total_message_count(self) -> int:
+        return timedelta(seconds=sum(interval_lengths_in_seconds))
+
+    @staticmethod
+    def __get_total_message_count(parameters: dict) -> int:
         """
         Returns:
             Expected number of messages sent throughout the entire test run, rounded to integers.
         """
+        messages_per_second_in_intervals = parameters[
+            "messages_per_second_in_intervals"
+        ]
+        interval_lengths_in_seconds = parameters["interval_lengths_in_seconds"]
         total_message_count = 0
-        for i in range(len(self.interval_lengths_in_seconds)):
+
+        for i in range(len(interval_lengths_in_seconds)):
             total_message_count += (
-                self.interval_lengths_in_seconds[i]
-                * self.messages_per_second_in_intervals[i]
+                interval_lengths_in_seconds[i] * messages_per_second_in_intervals[i]
             )
         return round(total_message_count)
 
+    @staticmethod
     def __normalize_intervals(
-        self, intervals: float | int | list[float | int]
+        messages_per_second_in_intervals: list[float | int],
+        intervals: float | int | list[float | int],
     ) -> list[float | int]:
         """
         Args:
@@ -139,15 +162,19 @@ class IntervalBasedTest(BaseTest):
         """
         if type(intervals) is not list:
             intervals = [
-                intervals for _ in range(len(self.messages_per_second_in_intervals))
+                intervals for _ in range(len(messages_per_second_in_intervals))
             ]
 
         return intervals
 
-    def __validate_interval_data(self):
-        if len(self.interval_lengths_in_seconds) != len(
-            self.messages_per_second_in_intervals
-        ):
+    @staticmethod
+    def __validate_interval_data(parameters: dict):
+        messages_per_second_in_intervals = parameters[
+            "messages_per_second_in_intervals"
+        ]
+        interval_lengths_in_seconds = parameters["interval_lengths_in_seconds"]
+
+        if len(interval_lengths_in_seconds) != len(messages_per_second_in_intervals):
             raise ValueError("Different lengths of interval lists. Must be equal.")
 
     @abstractmethod
@@ -171,11 +198,15 @@ class SingleIntervalTest(BaseTest):
             full_length_in_minutes (float | int): Duration in minutes for which to send messages
             messages_per_second (float | int): Number of messages per second when sending messages
         """
-        self.messages_per_second = messages_per_second
-        self.full_length_in_minutes = full_length_in_minutes
+
+        parameters = {
+            "messages_per_second": messages_per_second,
+            "full_length_in_minutes": full_length_in_minutes,
+        }
 
         super().__init__(
             name=name,
+            parameters=parameters,
             is_interval_based=False,
             total_message_count=self.__get_total_message_count(),
         )
@@ -184,10 +215,12 @@ class SingleIntervalTest(BaseTest):
         """Produces messages for the specified duration and updates the
         progress bar accordingly."""
         start_timestamp = datetime.now()
+        messages_per_second = self.metadata["parameters"]["messages_per_second"]
+        full_length_in_minutes = self.metadata["parameters"]["full_length_in_minutes"]
         current_index = 0
 
         while datetime.now() - start_timestamp < timedelta(
-            minutes=self.full_length_in_minutes
+            minutes=full_length_in_minutes
         ):
             try:
                 self.kafka_producer.produce(
@@ -201,7 +234,7 @@ class SingleIntervalTest(BaseTest):
                 self.progress_bar.update(
                     min(
                         self._get_time_elapsed()
-                        / timedelta(minutes=self.full_length_in_minutes)
+                        / timedelta(minutes=full_length_in_minutes)
                         * 100,
                         100,
                     )  # current time elapsed relative to full duration
@@ -210,7 +243,7 @@ class SingleIntervalTest(BaseTest):
                 current_index += 1
             except KafkaException:
                 logger.error(KafkaException)
-            time.sleep(1.0 / self.messages_per_second)
+            time.sleep(1.0 / messages_per_second)
 
         self.progress_bar.update(100)
 
@@ -219,7 +252,10 @@ class SingleIntervalTest(BaseTest):
         Returns:
             Expected number of messages sent throughout the entire test run, rounded to integers.
         """
-        return round(self.messages_per_second * self.full_length_in_minutes * 60)
+        messages_per_second = self.metadata["parameters"]["messages_per_second"]
+        full_length_in_minutes = self.metadata["parameters"]["full_length_in_minutes"]
+
+        return round(messages_per_second * full_length_in_minutes * 60)
 
     @abstractmethod
     def _BaseTest__get_metadata_configuration(self) -> MetadataConfiguration:

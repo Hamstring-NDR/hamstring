@@ -119,6 +119,6 @@ class RampUpTest(IntervalBasedTest):
     def _BaseTest__get_metadata_configuration(self) -> MetadataConfiguration:
         return RampUpMetadata(
             # total_ingoing_loglines=None,
-            start_time=self.start_timestamp,
-            end_time=self.end_timestamp,
+            start_time=self.metadata["start_timestamp"],
+            end_time=self.metadata["end_timestamp"],
         )
