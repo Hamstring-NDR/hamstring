@@ -93,6 +93,7 @@ class PlotGenerator:
 
         # plot data
         for name, df in dataframes.items():
+            plt.yscale("log")
             plt.plot(
                 df["time"] / x_scale * (10**6),
                 df["value"] / y_scale,
@@ -109,11 +110,12 @@ class PlotGenerator:
             for i in intervals_in_sec:
                 x_values.append(x_values[-1] + i)
             for x in x_values[1:]:
-                plt.axvline(x / 60, color="gray", linestyle="--", linewidth=1)
+                plt.axvline(
+                    x, color="gray", linestyle="--", linewidth=1
+                )  # TODO: Check for different x_units
 
         # adjust settings
         plt.xlim(left=0)
-        plt.ylim(bottom=0)
 
         if x_unit == "s":
             plt.gca().xaxis.set_major_locator(ticker.MultipleLocator(30))

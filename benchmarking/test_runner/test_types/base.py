@@ -380,9 +380,9 @@ class BaseTest:
         self.plot_generator.plot_latency(
             datafiles_to_names=module_to_filepath,
             relative_output_directory_path=relative_output_graph_directory,
-            # title="Latency Comparison",
-            start_time=self.start_timestamp,
+            start_time=self.metadata["start_timestamp"],
             median_smooth=True,
+            intervals_in_sec=self.metadata["parameters"]["interval_lengths_in_seconds"],
         )
 
 

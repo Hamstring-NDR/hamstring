@@ -345,13 +345,13 @@ if __name__ == "__main__":
         relative_output_directory_path=Path(
             BASE_DIR / "benchmark_results/20251030_184629_ramp_up/graphs"
         ),
-        # title="Latency Comparison",
         start_time=pd.Timestamp(
             datetime.datetime(
                 year=2025, month=10, day=30, hour=17, minute=39, second=20
             )
         ),
         median_smooth=True,
+        intervals_in_sec=[60, 60, 60],
     )
 
     generator = PDFOverviewGenerator(
