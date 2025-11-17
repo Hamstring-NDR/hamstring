@@ -5,10 +5,10 @@ import sys
 sys.path.append(os.getcwd())
 from benchmarking.test_runner.test_types.main import *
 from src.base.log_config import get_logger
-from benchmarking.controller.setup_config import setup_config
+from benchmarking.utils import ReadWriteUtils
 
 logger = get_logger()
-benchmark_test_config = setup_config()
+benchmark_test_config = ReadWriteUtils.setup_config()
 
 test_config = benchmark_test_config["tests"]
 

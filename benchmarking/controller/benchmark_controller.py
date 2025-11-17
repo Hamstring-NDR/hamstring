@@ -5,12 +5,10 @@ import sys
 
 sys.path.append(os.getcwd())
 from src.base.log_config import get_logger
-from src.base.utils import setup_config
-from benchmarking.controller.setup_config import setup_config as setup_benchmark_config
+from benchmarking.utils import ReadWriteUtils
 
 logger = get_logger()
-config = setup_config()
-benchmark_test_config = setup_benchmark_config()
+benchmark_test_config = ReadWriteUtils.setup_config()
 
 
 class BenchmarkController:
