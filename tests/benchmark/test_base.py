@@ -20,7 +20,15 @@ class TestInit(unittest.TestCase):
         # Assert
         self.assertIsNone(sut.custom_fields)
         self.assertIsNone(sut.progress_bar)
-        self.assertIsNone(sut.start_timestamp)
+        self.assertEqual(
+            sut.metadata,
+            {
+                "test_name": "SuT",
+                "start_timestamp": None,
+                "end_timestamp": None,
+                "parameters": None,
+            },
+        )
         self.assertEqual(sut.total_message_count, 150)
         self.assertTrue(sut.is_interval_based)
 
@@ -38,7 +46,15 @@ class TestInit(unittest.TestCase):
         # Assert
         self.assertIsNone(sut.custom_fields)
         self.assertIsNone(sut.progress_bar)
-        self.assertIsNone(sut.start_timestamp)
+        self.assertEqual(
+            sut.metadata,
+            {
+                "test_name": "SuT",
+                "start_timestamp": None,
+                "end_timestamp": None,
+                "parameters": None,
+            },
+        )
         self.assertEqual(sut.total_message_count, 150)
         self.assertFalse(sut.is_interval_based)
 
@@ -83,11 +99,24 @@ class TestExecute(unittest.TestCase):
         with patch(
             "benchmarking.test_runner.test_types.base.BenchmarkDatasetGenerator"
         ), patch("benchmarking.test_runner.test_types.base.SimpleKafkaProduceHandler"):
-            sut = BaseTest("SuT", 120, True)
+            sut = BaseTest(
+                name="SuT",
+                parameters=None,
+                total_message_count=120,
+                is_interval_based=True,
+            )
 
         self.assertIsNone(sut.custom_fields)
         self.assertIsNone(sut.progress_bar)
-        self.assertIsNone(sut.start_timestamp)
+        self.assertEqual(
+            sut.metadata,
+            {
+                "test_name": "SuT",
+                "start_timestamp": None,
+                "end_timestamp": None,
+                "parameters": None,
+            },
+        )
 
         mock_progress_bar_instance = Mock()
 
@@ -113,7 +142,8 @@ class TestExecute(unittest.TestCase):
 
         self.assertIsNone(sut.custom_fields)
         self.assertIsNone(sut.progress_bar)
-        self.assertIsNotNone(sut.start_timestamp)
+        self.assertIsNotNone(sut.metadata.get("start_timestamp"))
+        self.assertIsNotNone(sut.metadata.get("end_timestamp"))
 
 
 class TestExecuteCore(unittest.TestCase):

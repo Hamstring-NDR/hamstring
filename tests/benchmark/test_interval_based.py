@@ -31,10 +31,24 @@ class TestInit(unittest.TestCase):
                 test_interval_lengths_in_seconds,
                 test_messages_per_second_in_intervals,
             )
+            parameters = {
+                "interval_lengths_in_seconds": test_interval_lengths_in_seconds,
+                "messages_per_second_in_intervals": test_messages_per_second_in_intervals,
+            }
+            sut.metadata = {
+                "test_name": "SuT",
+                "start_timestamp": None,
+                "end_timestamp": None,
+                "parameters": parameters,
+            }
 
         # Assert
-        self.assertEqual(sut.interval_lengths_in_seconds, [1, 2, 3])
-        self.assertEqual(sut.messages_per_second_in_intervals, [4, 5, 6])
+        self.assertEqual(
+            sut.metadata["parameters"]["interval_lengths_in_seconds"], [1, 2, 3]
+        )
+        self.assertEqual(
+            sut.metadata["parameters"]["messages_per_second_in_intervals"], [4, 5, 6]
+        )
 
         mock_normalize_intervals.assert_called_once()
         mock_validate_interval_data.assert_called_once()
@@ -43,6 +57,7 @@ class TestInit(unittest.TestCase):
             name="SuT",
             is_interval_based=True,
             total_message_count=150,
+            parameters=parameters,
         )
 
 
@@ -59,6 +74,15 @@ class TestExecuteCore(unittest.TestCase):
                 messages_per_second_in_intervals=test_messages_per_second_in_intervals,
             )
             sut.custom_fields = {"interval": Mock()}
+            sut.metadata = {
+                "test_name": "SuT",
+                "start_timestamp": None,
+                "end_timestamp": None,
+                "parameters": {
+                    "interval_lengths_in_seconds": [test_interval_length],
+                    "messages_per_second_in_intervals": test_messages_per_second_in_intervals,
+                },
+            }
 
         with patch(
             "benchmarking.test_runner.test_types.extended.IntervalBasedTest._IntervalBasedTest__execute_single_interval"
@@ -88,6 +112,15 @@ class TestExecuteCore(unittest.TestCase):
                 messages_per_second_in_intervals=test_messages_per_second_in_intervals,
             )
             sut.custom_fields = {"interval": Mock()}
+            sut.metadata = {
+                "test_name": "SuT",
+                "start_timestamp": None,
+                "end_timestamp": None,
+                "parameters": {
+                    "interval_lengths_in_seconds": test_interval_lengths_in_seconds,
+                    "messages_per_second_in_intervals": test_messages_per_second_in_intervals,
+                },
+            }
 
         with patch(
             "benchmarking.test_runner.test_types.extended.IntervalBasedTest._IntervalBasedTest__execute_single_interval"
@@ -285,6 +318,15 @@ class TestGetTotalDuration(unittest.TestCase):
                 interval_lengths_in_seconds=test_interval_length,
                 messages_per_second_in_intervals=test_messages_per_second_in_intervals,
             )
+            sut.metadata = {
+                "test_name": "SuT",
+                "start_timestamp": None,
+                "end_timestamp": None,
+                "parameters": {
+                    "interval_lengths_in_seconds": [test_interval_length],
+                    "messages_per_second_in_intervals": test_messages_per_second_in_intervals,
+                },
+            }
 
         # Act
         returned_value = sut._IntervalBasedTest__get_total_duration()  # noqa
@@ -303,6 +345,15 @@ class TestGetTotalDuration(unittest.TestCase):
                 interval_lengths_in_seconds=test_interval_lengths_in_seconds,
                 messages_per_second_in_intervals=test_messages_per_second_in_intervals,
             )
+            sut.metadata = {
+                "test_name": "SuT",
+                "start_timestamp": None,
+                "end_timestamp": None,
+                "parameters": {
+                    "interval_lengths_in_seconds": test_interval_lengths_in_seconds,
+                    "messages_per_second_in_intervals": test_messages_per_second_in_intervals,
+                },
+            }
 
         # Act
         returned_value = sut._IntervalBasedTest__get_total_duration()  # noqa
@@ -323,9 +374,21 @@ class TestGetTotalMessageCount(unittest.TestCase):
                 interval_lengths_in_seconds=test_interval_length,
                 messages_per_second_in_intervals=test_messages_per_second_in_intervals,
             )
+            parameters = {
+                "interval_lengths_in_seconds": [test_interval_length],
+                "messages_per_second_in_intervals": test_messages_per_second_in_intervals,
+            }
+            sut.metadata = {
+                "test_name": "SuT",
+                "start_timestamp": None,
+                "end_timestamp": None,
+                "parameters": parameters,
+            }
 
         # Act
-        returned_value = sut._IntervalBasedTest__get_total_message_count()  # noqa
+        returned_value = sut._IntervalBasedTest__get_total_message_count(
+            parameters
+        )  # noqa
 
         # Assert
         self.assertEqual(returned_value, 1190)  # = 7*170
@@ -341,9 +404,21 @@ class TestGetTotalMessageCount(unittest.TestCase):
                 interval_lengths_in_seconds=test_interval_lengths_in_seconds,
                 messages_per_second_in_intervals=test_messages_per_second_in_intervals,
             )
+            parameters = {
+                "interval_lengths_in_seconds": test_interval_lengths_in_seconds,
+                "messages_per_second_in_intervals": test_messages_per_second_in_intervals,
+            }
+            sut.metadata = {
+                "test_name": "SuT",
+                "start_timestamp": None,
+                "end_timestamp": None,
+                "parameters": parameters,
+            }
 
         # Act
-        returned_value = sut._IntervalBasedTest__get_total_message_count()  # noqa
+        returned_value = sut._IntervalBasedTest__get_total_message_count(
+            parameters
+        )  # noqa
 
         # Assert
         self.assertEqual(
@@ -361,9 +436,21 @@ class TestGetTotalMessageCount(unittest.TestCase):
                 interval_lengths_in_seconds=test_interval_lengths_in_seconds,
                 messages_per_second_in_intervals=test_messages_per_second_in_intervals,
             )
+            parameters = {
+                "interval_lengths_in_seconds": test_interval_lengths_in_seconds,
+                "messages_per_second_in_intervals": test_messages_per_second_in_intervals,
+            }
+            sut.metadata = {
+                "test_name": "SuT",
+                "start_timestamp": None,
+                "end_timestamp": None,
+                "parameters": parameters,
+            }
 
         # Act
-        returned_value = sut._IntervalBasedTest__get_total_message_count()  # noqa
+        returned_value = sut._IntervalBasedTest__get_total_message_count(
+            parameters
+        )  # noqa
 
         # Assert
         self.assertEqual(
@@ -393,7 +480,8 @@ class TestNormalizeIntervals(unittest.TestCase):
 
         # Act
         returned_value = sut._IntervalBasedTest__normalize_intervals(  # noqa
-            intervals=test_interval_length
+            intervals=test_interval_length,
+            messages_per_second_in_intervals=test_messages_per_second_in_intervals,
         )
 
         # Assert
@@ -413,7 +501,8 @@ class TestNormalizeIntervals(unittest.TestCase):
 
         # Act
         returned_value = sut._IntervalBasedTest__normalize_intervals(  # noqa
-            intervals=test_interval_lengths_in_seconds
+            intervals=test_interval_lengths_in_seconds,
+            messages_per_second_in_intervals=test_messages_per_second_in_intervals,
         )
 
         # Assert
@@ -447,7 +536,8 @@ class TestNormalizeIntervals(unittest.TestCase):
 
         # Act
         returned_value = sut._IntervalBasedTest__normalize_intervals(  # noqa
-            intervals=test_interval_lengths_in_seconds
+            intervals=test_interval_lengths_in_seconds,
+            messages_per_second_in_intervals=test_messages_per_second_in_intervals,
         )
 
         # Assert
@@ -472,9 +562,13 @@ class TestValidateIntervalData(unittest.TestCase):
                 interval_lengths_in_seconds=test_interval_lengths_in_seconds,
                 messages_per_second_in_intervals=test_messages_per_second_in_intervals,
             )
+            parameters = {
+                "interval_lengths_in_seconds": test_interval_lengths_in_seconds,
+                "messages_per_second_in_intervals": test_messages_per_second_in_intervals,
+            }
 
         # Act
-        sut._IntervalBasedTest__validate_interval_data()  # noqa
+        sut._IntervalBasedTest__validate_interval_data(parameters)  # noqa
 
         # Assert
         self.assertTrue(True)  # check if code is reached
@@ -496,9 +590,13 @@ class TestValidateIntervalData(unittest.TestCase):
                 interval_lengths_in_seconds=test_interval_length,
                 messages_per_second_in_intervals=test_messages_per_second_in_intervals,
             )
+            parameters = {
+                "interval_lengths_in_seconds": [test_interval_length] * 6,
+                "messages_per_second_in_intervals": test_messages_per_second_in_intervals,
+            }
 
         # Act
-        sut._IntervalBasedTest__validate_interval_data()  # noqa
+        sut._IntervalBasedTest__validate_interval_data(parameters)  # noqa
 
         # Assert
         self.assertTrue(True)  # check if code is reached
@@ -527,10 +625,14 @@ class TestValidateIntervalData(unittest.TestCase):
                 interval_lengths_in_seconds=test_interval_length,
                 messages_per_second_in_intervals=test_messages_per_second_in_intervals,
             )
+            parameters = {
+                "interval_lengths_in_seconds": [test_interval_length],
+                "messages_per_second_in_intervals": test_messages_per_second_in_intervals,
+            }
 
         # Act and Assert
         with self.assertRaises(ValueError):
-            sut._IntervalBasedTest__validate_interval_data()  # noqa
+            sut._IntervalBasedTest__validate_interval_data(parameters)  # noqa
 
 
 if __name__ == "__main__":

@@ -26,15 +26,26 @@ class TestInit(unittest.TestCase):
                 test_full_length_in_minutes,
                 test_messages_per_second,
             )
+            parameters = {
+                "full_length_in_minutes": test_full_length_in_minutes,
+                "messages_per_second": test_messages_per_second,
+            }
+            sut.metadata = {
+                "test_name": "SuT",
+                "start_timestamp": None,
+                "end_timestamp": None,
+                "parameters": parameters,
+            }
 
         # Assert
-        self.assertEqual(sut.full_length_in_minutes, 17.3)
-        self.assertEqual(sut.messages_per_second, 70)
+        self.assertEqual(sut.metadata["parameters"]["full_length_in_minutes"], 17.3)
+        self.assertEqual(sut.metadata["parameters"]["messages_per_second"], 70)
 
         mock_base_test_init.assert_called_once_with(
             name="SuT",
             is_interval_based=False,
             total_message_count=150,
+            parameters=parameters,
         )
 
 
@@ -59,6 +70,15 @@ class TestExecuteCore(unittest.TestCase):
                 full_length_in_minutes=test_full_length_in_minutes,
                 messages_per_second=test_messages_per_second,
             )
+            sut.metadata = {
+                "test_name": "SuT",
+                "start_timestamp": None,
+                "end_timestamp": None,
+                "parameters": {
+                    "messages_per_second": test_messages_per_second,
+                    "full_length_in_minutes": test_full_length_in_minutes,
+                },
+            }
             sut.kafka_producer = Mock()
             sut.dataset_generator = Mock()
             sut.custom_fields = {"message_count": Mock()}
@@ -123,6 +143,15 @@ class TestExecuteCore(unittest.TestCase):
                 full_length_in_minutes=test_full_length_in_minutes,
                 messages_per_second=test_messages_per_second,
             )
+            sut.metadata = {
+                "test_name": "SuT",
+                "start_timestamp": None,
+                "end_timestamp": None,
+                "parameters": {
+                    "messages_per_second": test_messages_per_second,
+                    "full_length_in_minutes": test_full_length_in_minutes,
+                },
+            }
             sut.kafka_producer = Mock()
             sut.dataset_generator = Mock()
             sut.custom_fields = {"message_count": Mock()}
@@ -176,11 +205,17 @@ class TestGetTotalMessageCount(unittest.TestCase):
                 full_length_in_minutes=test_full_length_in_minutes,
                 messages_per_second=test_messages_per_second,
             )
+            parameters = {
+                "messages_per_second": test_messages_per_second,
+                "full_length_in_minutes": test_full_length_in_minutes,
+            }
             sut.full_length_in_minutes = test_full_length_in_minutes
             sut.messages_per_second = test_messages_per_second
 
         # Act
-        returned_value = sut._SingleIntervalTest__get_total_message_count()  # noqa
+        returned_value = sut._SingleIntervalTest__get_total_message_count(
+            parameters
+        )  # noqa
 
         # Assert
         self.assertEqual(returned_value, 42000)
@@ -196,11 +231,17 @@ class TestGetTotalMessageCount(unittest.TestCase):
                 full_length_in_minutes=test_full_length_in_minutes,
                 messages_per_second=test_messages_per_second,
             )
+            parameters = {
+                "messages_per_second": test_messages_per_second,
+                "full_length_in_minutes": test_full_length_in_minutes,
+            }
             sut.full_length_in_minutes = test_full_length_in_minutes
             sut.messages_per_second = test_messages_per_second
 
         # Act
-        returned_value = sut._SingleIntervalTest__get_total_message_count()  # noqa
+        returned_value = sut._SingleIntervalTest__get_total_message_count(
+            parameters
+        )  # noqa
 
         # Assert
         self.assertEqual(returned_value, 41248)  # without rounding: 41247.6

@@ -49,9 +49,9 @@ class IntervalBasedTest(BaseTest):
 
         super().__init__(
             name=name,
-            parameters=parameters,
             is_interval_based=True,
             total_message_count=self.__get_total_message_count(parameters),
+            parameters=parameters,
         )
 
     def _execute_core(self):
@@ -206,9 +206,9 @@ class SingleIntervalTest(BaseTest):
 
         super().__init__(
             name=name,
-            parameters=parameters,
             is_interval_based=False,
-            total_message_count=self.__get_total_message_count(),
+            total_message_count=self.__get_total_message_count(parameters),
+            parameters=parameters,
         )
 
     def _execute_core(self):
@@ -247,13 +247,13 @@ class SingleIntervalTest(BaseTest):
 
         self.progress_bar.update(100)
 
-    def __get_total_message_count(self):
+    def __get_total_message_count(self, parameters: dict):
         """
         Returns:
             Expected number of messages sent throughout the entire test run, rounded to integers.
         """
-        messages_per_second = self.metadata["parameters"]["messages_per_second"]
-        full_length_in_minutes = self.metadata["parameters"]["full_length_in_minutes"]
+        messages_per_second = parameters["messages_per_second"]
+        full_length_in_minutes = parameters["full_length_in_minutes"]
 
         return round(messages_per_second * full_length_in_minutes * 60)
 

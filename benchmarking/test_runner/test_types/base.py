@@ -54,12 +54,13 @@ class BaseTest:
     def __init__(
         self,
         name: str,
-        parameters: dict[str, Any],
         total_message_count: int,
         is_interval_based: bool = False,
+        parameters: Optional[dict[str, Any]] = None,
     ):
         """
         Args:
+            TODO: Update
             total_message_count: Total number of messages to be sent during full test run
             is_interval_based: True if intervals are used, False for tests without intervals
         """
