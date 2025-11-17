@@ -351,6 +351,7 @@ if __name__ == "__main__":
                 year=2025, month=10, day=30, hour=17, minute=39, second=20
             )
         ),
+        median_smooth=True,
     )
 
     generator = PDFOverviewGenerator(

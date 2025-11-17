@@ -22,8 +22,8 @@ class PlotGenerator:
         datafiles_to_names: dict[str, str],
         start_time: pd.Timestamp,
         relative_output_directory_path: Path,
+        median_smooth: bool,
         title: str = None,
-        median_smooth: bool = False,
         x_label: str = "Time",
         y_label: str = "Latency",
         y_input_unit: str = "microseconds",
@@ -39,8 +39,8 @@ class PlotGenerator:
             datafiles_to_names (dict[str, str]): Dictionary of file names to show in the legend and their paths
             start_time (pd.Timestamp): Time to be set as t = 0
             relative_output_directory_path (Path): File path at which the figure should be stored
-            title (str): Title of the figure, None by default
             median_smooth (bool): True if the data should be smoothed, False by default
+            title (str): Title of the figure, None by default
             x_label (str): Label x-axis, "Time" by default
             y_label (str): Label y-axis, "Latency" by default
             y_input_unit (str): Unit of the data given as input, "microseconds" by default

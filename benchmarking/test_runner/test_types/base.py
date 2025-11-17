@@ -382,6 +382,7 @@ class BaseTest:
             relative_output_directory_path=relative_output_graph_directory,
             # title="Latency Comparison",
             start_time=self.start_timestamp,
+            median_smooth=True,
         )
 
 
