@@ -134,9 +134,9 @@ class BaseTest:
             f"{self.metadata['test_name']} Cleanup: After-test database cleanup finished"
         )
 
+        self._write_metadata_to_file()
         self._generate_plots()
         self._generate_report(test_directory_identifier)
-        self._write_metadata_to_file()
 
     @abstractmethod
     def _execute_core(self):
