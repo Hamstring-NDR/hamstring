@@ -86,7 +86,8 @@ class MainTitleBox(BaseBox):
             self.page.insert_htmlbox(  # report generation date
                 self._get_padded(),
                 f"Report generated: {str(generation_date)}",
-                css="* {font-family: sans-serif; font-size: 8px; padding: 8px 0; text-align: right}",
+                css="* {font-family: sans-serif; font-size: 8px; padding: 8px 0;"
+                "text-align: right; padding-right: .5px}",
             )
 
         return self

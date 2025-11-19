@@ -412,6 +412,9 @@ class BaseTest:
             start_time=self.metadata["start_timestamp"],
             median_smooth=True,
             intervals_in_sec=self.metadata["parameters"]["interval_lengths_in_seconds"],
+            datarates_per_interval=self.metadata["parameters"][
+                "messages_per_second_in_intervals"
+            ],
         )
 
 

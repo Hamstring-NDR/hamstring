@@ -346,7 +346,7 @@ if __name__ == "__main__":
     for module in MODULE_TO_CSV_FILENAME.keys():
         filename = MODULE_TO_CSV_FILENAME[module]
         module_to_filepath[module] = str(
-            Path(BASE_DIR / "benchmark_results/20251030_184629_ramp_up/data")
+            Path(BASE_DIR / "benchmark_results/20251117_200230_ramp_up/data")
             / "latencies"
             / filename
         )
@@ -354,33 +354,25 @@ if __name__ == "__main__":
     plot_generator.plot_latency(
         datafiles_to_names=module_to_filepath,
         relative_output_directory_path=Path(
-            BASE_DIR / "benchmark_results/20251030_184629_ramp_up/graphs"
+            BASE_DIR / "benchmark_results/20251117_200230_ramp_up/graphs"
         ),
         start_time=pd.Timestamp(
             datetime.datetime(
-                year=2025, month=10, day=30, hour=17, minute=39, second=20
+                year=2025, month=11, day=17, hour=18, minute=54, second=58
             )
         ),
         median_smooth=True,
-        intervals_in_sec=[60, 60, 60],
+        intervals_in_sec=[30, 30, 30, 30, 30, 30],
+        datarates_per_interval=[1, 10, 50, 100, 150, 200],
     )
 
     generator = PDFOverviewGenerator(
-        metadata_configuration=RampUpMetadata(
-            # total_ingoing_loglines=46127,
-            start_time=datetime.datetime(
-                year=2025, month=10, day=30, hour=17, minute=39, second=20
-            ),
-            end_time=datetime.datetime(
-                year=2025, month=10, day=30, hour=17, minute=39, second=20
-            )
-            + datetime.timedelta(minutes=3),
-        ),
+        metadata_configuration=RampUpMetadata(),
     )
 
     generator.setup_first_page_layout(
-        test_directory_identifier="20251030_184629_ramp_up",
-        benchmark_test_date=datetime.date(2025, 10, 30),
+        test_directory_identifier="20251117_200230_ramp_up",
+        benchmark_test_date=datetime.date(2025, 11, 17),
     )
 
     generator.save_file(Path("benchmarking/testing_reports"), "report")

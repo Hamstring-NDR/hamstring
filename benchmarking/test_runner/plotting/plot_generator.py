@@ -31,6 +31,7 @@ class PlotGenerator:
         fig_height: int | float = 4.5,
         color_start_index: int = 0,
         intervals_in_sec: Optional[list[int]] = None,
+        datarates_per_interval: Optional[list[int]] = None,
     ):
         """Creates a figure and plots the given latency data as graphs. All graphs are plotted into the same figure,
         which is then stored as a file.
@@ -48,6 +49,7 @@ class PlotGenerator:
             fig_height (int | float): Height of the figure, 5 by default
             color_start_index (int): First index of the color palette to be used, 0 by default
             intervals_in_sec (Optional[list[int]]): Optional list of interval lengths in seconds
+            datarates_per_interval (Optional[list[int]]): Optional list of data rates per interval
         """
         plt.figure(figsize=(fig_width, fig_height))
 
@@ -114,6 +116,38 @@ class PlotGenerator:
                     x, color="gray", linestyle="--", linewidth=1
                 )  # TODO: Check for different x_units
 
+        if (
+            intervals_in_sec is not None
+            and datarates_per_interval is not None
+            and len(intervals_in_sec) == len(datarates_per_interval)
+        ):
+            # prepare list of interval starting times
+            interval_starts_in_sec = [
+                sum(intervals_in_sec[:i]) for i in range(len(intervals_in_sec))
+            ]
+            interval_starts_in_sec.append(
+                sum(intervals_in_sec[: len(intervals_in_sec)])
+            )  # add interval after the test
+
+            # prepare list of data rates
+            datarates_per_interval.append(0)  # add 0 after the test
+
+            y_max = plt.ylim()[1]
+
+            for rate, interval_start in zip(
+                datarates_per_interval, interval_starts_in_sec
+            ):
+                plt.annotate(
+                    f"{rate:,}/s \u2192",  # arrow to the right
+                    xy=(interval_start, y_max),
+                    xytext=(0, 9),
+                    textcoords="offset points",
+                    ha="left",
+                    va="top",
+                    fontsize=7,
+                    color="gray",
+                )
+
         # adjust settings
         plt.xlim(left=0)
 
@@ -125,7 +159,7 @@ class PlotGenerator:
             y_label_additions = " (median-smoothed)"
 
         plt.title(title)
-        plt.xlabel(f"{x_label} [{x_unit}]")
+        plt.xlabel(f"{x_label} [{x_unit}]", labelpad=10)
         plt.ylabel(f"{y_label} [{y_unit}]" + y_label_additions)
         plt.grid(color="lightgray")
 

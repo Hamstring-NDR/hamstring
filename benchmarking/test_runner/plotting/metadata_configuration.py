@@ -1,4 +1,3 @@
-import datetime
 import os
 import sys
 from abc import abstractmethod
@@ -9,6 +8,7 @@ from benchmarking.test_runner.plotting.metadata_information import (
     NumberPerTimeMetadataInformation,
     SingleMetadataInformation,
     HourMinuteSecondMetadataInformation,
+    RangeNumberPerTimeMetadataInformation,
 )
 
 
@@ -22,11 +22,11 @@ class RampUpMetadata(MetadataConfiguration):
     def __init__(
         self,
         # total_ingoing_loglines: int,
-        start_time: datetime.datetime,
-        end_time: datetime.datetime,
+        # start_time: datetime.datetime,
+        # end_time: datetime.datetime,
     ):
-        if start_time >= end_time:
-            raise ValueError("End time must be after start time")
+        # if start_time >= end_time:
+        #     raise ValueError("End time must be after start time")
 
         self.total_ingoing_loglines = 12345  # TODO: Only for testing
 
@@ -38,6 +38,16 @@ class RampUpMetadata(MetadataConfiguration):
 
             # calculation
             total_duration = end_timestamp - start_timestamp
+
+            number_of_intervals = len(parameters["interval_lengths_in_seconds"])
+            min_interval_length = min(parameters["interval_lengths_in_seconds"])
+            max_interval_length = max(parameters["interval_lengths_in_seconds"])
+
+            if min_interval_length == max_interval_length:
+                interval_str = f"{number_of_intervals}, {min_interval_length:,}s"
+            else:
+                interval_str = f"{number_of_intervals}, {min_interval_length:,}s - {max_interval_length:,}s"
+
         except Exception:
             raise ValueError("Malformed or missing metadata values")
 
@@ -46,23 +56,34 @@ class RampUpMetadata(MetadataConfiguration):
             #     title="Total ingoing loglines",
             #     value=self.total_ingoing_loglines,
             # ),
+            # first row
+            (1, 1): HourMinuteSecondMetadataInformation(
+                title="Start time",
+                value=start_timestamp.astimezone(),
+                include_date=(start_timestamp.date() != end_timestamp.date()),
+            ),
             (1, 2): DurationMetadataInformation(
                 title="Total duration",
                 value=total_duration,
+            ),
+            (1, 3): RangeNumberPerTimeMetadataInformation(
+                title="Input data rate",
+                values=parameters["messages_per_second_in_intervals"],
+                per="s",
+            ),
+            # second row
+            (2, 1): HourMinuteSecondMetadataInformation(
+                title="End time",
+                value=end_timestamp.astimezone(),
+                include_date=(start_timestamp.date() != end_timestamp.date()),
             ),
             (2, 2): NumberPerTimeMetadataInformation(
                 title="Ingoing logline rate",
                 value=self.total_ingoing_loglines / total_duration.total_seconds(),
                 per="s",
             ),
-            (1, 1): HourMinuteSecondMetadataInformation(
-                title="Start time",
-                value=start_timestamp.astimezone(),
-                include_date=(start_timestamp.date() != end_timestamp.date()),
-            ),
-            (2, 1): HourMinuteSecondMetadataInformation(
-                title="End time",
-                value=end_timestamp.astimezone(),
-                include_date=(start_timestamp.date() != end_timestamp.date()),
+            (2, 3): SingleMetadataInformation(
+                title="#Intervals, interval length",
+                value=interval_str,
             ),
         }

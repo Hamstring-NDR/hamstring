@@ -85,6 +85,51 @@ class NumberPerTimeMetadataInformation(SingleMetadataInformation):
         return f"{value:,.1f}{suffix}"
 
 
+class RangeNumberPerTimeMetadataInformation(SingleMetadataInformation):
+    """Includes a title and an informative value, indicating a range of numbers per time, e.g. loglines per second."""
+
+    def __init__(self, title: str, values: list[float], per: str):
+        """
+        Args:
+            title: Descriptive title of the information.
+            values: List of values per time, e.g. [27.4, 31.2] for 27.4/s - 31.2/s.
+            per: Per time, must be "s", "min" or "h".
+        """
+        min_value = min(values)
+        max_value = max(values)
+
+        if min_value == max_value:
+            str_value = self._format_rate(min(values), per)
+        else:
+            str_value = f"{self._format_rate(min(values), per)} - {self._format_rate(max(values), per)}"
+
+        super().__init__(title=title, value=str_value)
+
+    @staticmethod
+    def _format_rate(value: float, per: str = "s") -> str:
+        """
+        Formats a rate as 'value/unit'.
+
+        Args:
+            value: The value as float.
+            per: Unit of interval. "s", "min" or "h".
+
+        Returns:
+            String in format 'value/unit', e.g. "27.4/s".
+        """
+        per = per.lower()
+        if per == "s":
+            suffix = "/s"
+        elif per == "min":
+            suffix = "/min"
+        elif per == "h":
+            suffix = "/h"
+        else:
+            raise ValueError("per must be one of 's', 'min', or 'h'")
+
+        return f"{value:,}{suffix}"
+
+
 class HourMinuteSecondMetadataInformation(SingleMetadataInformation):
     """Includes a title and an informative time value, which is displayed as hour, minute, and second."""
 
