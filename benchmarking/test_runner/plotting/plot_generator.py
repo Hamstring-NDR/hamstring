@@ -300,6 +300,105 @@ class PlotGenerator:
         plt.savefig(absolute_output_filename, dpi=300, bbox_inches="tight")
         logger.info(f"File saved at {relative_output_filename}")
 
+    def plot_entering_processed(
+        self,
+        datafiles_to_names: dict[str, str],
+        start_time: pd.Timestamp,
+        relative_output_directory_path: Path,
+        title: str = None,
+        x_label: str = "Time",
+        y_label: str = "Accumulated number of log lines",
+        fig_width: int | float = 10,
+        fig_height: int | float = 5,
+        color_start_index: int = 0,
+        intervals_in_sec: Optional[list[int]] = None,
+        downsample_factor: int = 500,
+    ):
+        """Creates a figure and plots the entering and processed log lines data. All graphs are plotted into the
+        same figure, which is then stored as a file.
+
+        Args:
+            datafiles_to_names (dict[str, str]): Dictionary of file names to show in the legend and their paths
+            start_time (pd.Timestamp): Time to be set as t = 0
+            relative_output_directory_path (Path): File path at which the figure should be stored
+            title (str): Title of the figure, None by default
+            x_label (str): Label x-axis, "Time" by default
+            y_label (str): Label y-axis, "Number of log lines" by default
+            fig_width (int | float): Width of the figure, 10 by default
+            fig_height (int | float): Height of the figure, 5 by default
+            color_start_index (int): First index of the color palette to be used, 0 by default
+            intervals_in_sec (Optional[list[int]]): Optional list of interval lengths in seconds
+            downsample_factor (int): Factor for downsampling data points, 500 by default
+        """
+        plt.figure(figsize=(fig_width, fig_height))
+
+        # initialize color palette
+        colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+        cur_color_index = color_start_index
+
+        # load data from files
+        for name, file in datafiles_to_names.items():
+            # determine which timestamp column to use
+            df = pd.read_csv(file)
+
+            if df.empty:
+                continue  # skip empty datafiles
+
+            # check which timestamp column exists
+            if "timestamp_in" in df.columns:
+                timestamp_col = "timestamp_in"
+            elif "timestamp" in df.columns:
+                timestamp_col = "timestamp"
+            else:
+                logger.warning(f"No valid timestamp column found in {file}")
+                continue
+
+            # parse timestamp and sort
+            df[timestamp_col] = pd.to_datetime(df[timestamp_col])
+            df = df.sort_values(by=timestamp_col)
+
+            df["time"] = (
+                df[timestamp_col] - start_time.replace(tzinfo=None)
+            ).dt.total_seconds()
+
+            # downsample data for better performance
+            n = max(1, len(df) // downsample_factor)
+            plt.plot(
+                df["time"][::n],
+                df["cumulative_count"][::n],
+                linestyle="-",
+                label=name,
+                color=colors[cur_color_index],
+            )
+            cur_color_index += 1
+
+        # add interval lines
+        if intervals_in_sec is not None:
+            x_values = [0]
+            for i in intervals_in_sec:
+                x_values.append(x_values[-1] + i)
+            for x in x_values[1:]:
+                plt.axvline(x, color="gray", linestyle="--", linewidth=1)
+
+        # adjust settings
+        plt.xlim(left=0)
+        plt.ylim(bottom=0)
+        plt.gca().xaxis.set_major_locator(ticker.MultipleLocator(60))
+
+        plt.title(title)
+        plt.xlabel(f"{x_label} [s]")
+        plt.ylabel(y_label)
+        plt.legend()
+        plt.grid(color="lightgray")
+
+        relative_output_filename = (
+            relative_output_directory_path / "entering_processed_comparison.png"
+        )
+        absolute_output_filename = BASE_DIR / relative_output_filename
+
+        plt.savefig(absolute_output_filename, dpi=300, bbox_inches="tight")
+        logger.info(f"File saved at {relative_output_filename}")
+
     @staticmethod
     def _determine_time_unit(max_value: int, input_unit: str):
         max_value_in_seconds = datetime.timedelta(
