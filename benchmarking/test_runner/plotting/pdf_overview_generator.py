@@ -92,7 +92,10 @@ class PDFOverviewGenerator:
                 ),
                 "fourth_detail_graph": Path(
                     BASE_DIR
-                    / "benchmarking/graphs/entering_processed_bars.png"  # TODO: Update
+                    / "benchmark_results"
+                    / test_directory_identifier
+                    / "graphs"
+                    / "entering_processed_per_minute.png"
                 ),
                 "metadata": Path(
                     BASE_DIR
@@ -467,6 +470,31 @@ if __name__ == "__main__":
             )
         ),
         intervals_in_sec=[30, 30, 30, 30, 30, 30],
+        fig_width=8.35,
+        fig_height=4.8,
+    )
+
+    MODULE_TO_CSV_FILENAME: dict[str, str] = {
+        "Entering": "entering_total.csv",
+        "Processed": "processed_loglines_and_failed_dns_per_minute.csv",
+    }
+
+    module_to_filepath = (
+        MODULE_TO_CSV_FILENAME.copy()
+    )  # keep original dictionary unchanged
+    for module in MODULE_TO_CSV_FILENAME.keys():
+        filename = MODULE_TO_CSV_FILENAME[module]
+        module_to_filepath[module] = str(
+            Path(BASE_DIR / "benchmark_results/20251117_200230_ramp_up/data")
+            / "entering_processed"
+            / filename
+        )
+
+    plot_generator.plot_entering_processed_per_minute(
+        datafiles_to_names=module_to_filepath,
+        relative_output_directory_path=Path(
+            BASE_DIR / "benchmark_results/20251117_200230_ramp_up/graphs"
+        ),
         fig_width=8.35,
         fig_height=4.8,
     )
