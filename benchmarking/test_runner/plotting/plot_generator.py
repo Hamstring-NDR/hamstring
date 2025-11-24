@@ -386,13 +386,99 @@ class PlotGenerator:
         plt.gca().xaxis.set_major_locator(ticker.MultipleLocator(60))
 
         plt.title(title)
-        plt.xlabel(f"{x_label} [s]")
+        plt.xlabel(f"{x_label} [s]", labelpad=10)
         plt.ylabel(y_label)
         plt.legend()
         plt.grid(color="lightgray")
 
         relative_output_filename = (
             relative_output_directory_path / "entering_processed_comparison.png"
+        )
+        absolute_output_filename = BASE_DIR / relative_output_filename
+
+        plt.savefig(absolute_output_filename, dpi=300, bbox_inches="tight")
+        logger.info(f"File saved at {relative_output_filename}")
+
+    def plot_latencies_boxplot(
+        self,
+        datafiles_to_names: dict[str, str],
+        relative_output_directory_path: Path,
+        title: str = None,
+        y_label: str = "Latency in module [s]",
+        y_input_unit: str = "microseconds",
+        fig_width: int | float = 7,
+        fig_height: int | float = 5,
+    ):
+        """Creates a boxplot figure showing latency distributions for different modules.
+
+        Args:
+            datafiles_to_names (dict[str, str]): Dictionary of file names to show in the legend and their paths
+            relative_output_directory_path (Path): File path at which the figure should be stored
+            title (str): Title of the figure, "Latencies per module" by default
+            y_label (str): Label y-axis, "Latency in module [s]" by default
+            y_input_unit (str): Unit of the data given as input, "microseconds" by default
+            fig_width (int | float): Width of the figure, 7 by default
+            fig_height (int | float): Height of the figure, 5 by default
+        """
+        plt.figure(figsize=(fig_width, fig_height))
+
+        data = []
+        labels = []
+
+        # load data from files
+        for name, file in datafiles_to_names.items():
+            df = pd.read_csv(file, parse_dates=["time"]).sort_values(by="time")
+
+            if df.empty:
+                continue  # skip empty datafiles
+
+            # convert to seconds based on input unit
+            if y_input_unit == "microseconds":
+                data.append(df["value"] / (10**6))
+            elif y_input_unit == "milliseconds":
+                data.append(df["value"] / (10**3))
+            elif y_input_unit == "seconds":
+                data.append(df["value"])
+            else:
+                data.append(df["value"])
+
+            labels.append(name)
+
+        # define box plot styling
+        boxprops = dict(color="black", linewidth=1)
+        whiskerprops = dict(color="black", linewidth=1)
+        capprops = dict(color="black", linewidth=1)
+        medianprops = dict(color="black", linewidth=1.5)
+        flierprops = dict(
+            marker="x",
+            markerfacecolor="lightgray",
+            markeredgecolor="lightgray",
+            markersize=4,
+            linestyle="none",
+        )
+
+        plt.boxplot(
+            data,
+            labels=labels,
+            vert=True,
+            patch_artist=False,  # no filled boxes
+            boxprops=boxprops,
+            whiskerprops=whiskerprops,
+            capprops=capprops,
+            medianprops=medianprops,
+            flierprops=flierprops,
+        )
+
+        plt.yscale("log")
+        plt.ylabel(y_label)
+        plt.title(title, fontsize=12)
+        plt.grid(axis="y", linestyle="--", linewidth=0.5, alpha=0.7)
+
+        plt.xticks(rotation=30, ha="right")
+        plt.tight_layout()
+
+        relative_output_filename = (
+            relative_output_directory_path / "latencies_boxplot.png"
         )
         absolute_output_filename = BASE_DIR / relative_output_filename
 
