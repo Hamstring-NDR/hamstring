@@ -2,6 +2,7 @@ import datetime
 from pathlib import Path
 from typing import Optional
 
+import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt, ticker
 
@@ -82,6 +83,8 @@ class PlotGenerator:
 
             dataframes[name] = df
 
+            df.loc[df["time"].diff() > 2, "value"] = np.nan
+
             df_max_time = df["time"].max()
             if df_max_time > total_max_time:
                 total_max_time = df_max_time
@@ -99,8 +102,8 @@ class PlotGenerator:
             plt.plot(
                 df["time"] / x_scale * (10**6),
                 df["value"] / y_scale,
-                marker=None,
-                linestyle="-",
+                marker="o",
+                markersize=1,
                 label=name,
                 color=colors[cur_color_index],
             )
