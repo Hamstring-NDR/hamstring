@@ -75,7 +75,10 @@ class PDFOverviewGenerator:
                 ),
                 "second_detail_graph": Path(
                     BASE_DIR
-                    / "benchmarking/graphs/fill_levels_comparison.png"  # TODO: Update
+                    / "benchmark_results"
+                    / test_directory_identifier
+                    / "graphs"
+                    / "fill_levels_comparison.png"
                 ),
                 "third_detail_graph": Path(
                     BASE_DIR
@@ -364,6 +367,42 @@ if __name__ == "__main__":
         median_smooth=True,
         intervals_in_sec=[30, 30, 30, 30, 30, 30],
         datarates_per_interval=[1, 10, 50, 100, 150, 200],
+    )
+
+    MODULE_TO_CSV_FILENAME: dict[str, str] = {
+        "Collector": "collector.csv",
+        "Detector": "detector.csv",
+        "Inspector": "inspector.csv",
+        "Prefilter": "prefilter.csv",
+        "Batch Handler (Batch)": "batch_handler_batch.csv",
+        "Batch Handler (Buffer)": "batch_handler_buffer.csv",
+    }
+
+    module_to_filepath = (
+        MODULE_TO_CSV_FILENAME.copy()
+    )  # keep original dictionary unchanged
+    for module in MODULE_TO_CSV_FILENAME.keys():
+        filename = MODULE_TO_CSV_FILENAME[module]
+        module_to_filepath[module] = str(
+            Path(BASE_DIR / "benchmark_results/20251117_200230_ramp_up/data")
+            / "log_volumes"
+            / filename
+        )
+
+    plot_generator.plot_fill_levels(
+        datafiles_to_names=module_to_filepath,
+        relative_output_directory_path=Path(
+            BASE_DIR / "benchmark_results/20251117_200230_ramp_up/graphs"
+        ),
+        start_time=pd.Timestamp(
+            datetime.datetime(
+                year=2025, month=11, day=17, hour=18, minute=54, second=58
+            )
+        ),
+        median_smooth=True,
+        intervals_in_sec=[30, 30, 30, 30, 30, 30],
+        fig_width=8.35,
+        fig_height=4.8,
     )
 
     generator = PDFOverviewGenerator(
