@@ -328,3 +328,10 @@ docs/api/
 
 # requirements.txt
 !*/requirements.*.txt
+
+# Allow CMake files for C++ build system
+!CMakeLists.txt
+!**/CMakeLists.txt
+!vcpkg.json
+!**/vcpkg.json
+!compile_commands.json
