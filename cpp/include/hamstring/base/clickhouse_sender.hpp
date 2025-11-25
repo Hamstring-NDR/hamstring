@@ -1,16 +1,17 @@
 #pragma once
 
-#include <chrono>
-// #include <clickhouse/client.h>  // TODO: Enable when clickhouse-cpp is
-// available
-#include <memory>
 #include <string>
-#include <vector>
 
 namespace hamstring {
 namespace base {
 
-// ClickHouse batch sender for monitoring data
+/**
+ * @brief ClickHouse stub for monitoring (logs to spdlog instead of database)
+ *
+ * This is a lightweight stub that provides the ClickHouse interface but
+ * logs metrics instead of writing to a database. Useful for testing and
+ * when ClickHouse is not available.
+ */
 class ClickHouseSender {
 public:
   ClickHouseSender(const std::string &hostname, int port = 9000,
@@ -19,56 +20,39 @@ public:
                    const std::string &password = "");
   ~ClickHouseSender();
 
-  // Execute a query
+  // Batch tracking (logged as structured messages)
+  void insert_batch_timestamp(const std::string &batch_id,
+                              const std::string &stage,
+                              const std::string &instance_name,
+                              const std::string &status, size_t message_count,
+                              bool is_active = true);
+
+  // Logline tracking
+  void insert_logline_timestamp(const std::string &logline_id,
+                                const std::string &stage,
+                                const std::string &status,
+                                bool is_active = true);
+
+  // Metrics/fill levels
+  void insert_fill_level(const std::string &stage,
+                         const std::string &entry_type, size_t entry_count);
+
+  // DGA detections
+  void insert_dga_detection(const std::string &domain, double score,
+                            const std::string &batch_id,
+                            const std::string &src_ip);
+
+  // Generic methods
   void execute(const std::string &query);
-
-  // Insert data into a table
-  void insert(const std::string &table, const std::vector<std::string> &columns,
-              const std::vector<std::vector<std::string>> &rows);
-
-  // Check if connection is alive
   bool ping();
 
 private:
   std::string hostname_;
   int port_;
   std::string database_;
-  // std::unique_ptr<clickhouse::Client> client_;  // TODO: Enable when
-  // clickhouse-cpp is available
-};
-
-// Batched ClickHouse sender with timeout
-class ClickHouseBatchSender {
-public:
-  ClickHouseBatchSender(
-      std::shared_ptr<ClickHouseSender> sender, const std::string &table,
-      const std::vector<std::string> &columns, size_t batch_size = 50,
-      std::chrono::seconds batch_timeout = std::chrono::seconds(2));
-  ~ClickHouseBatchSender();
-
-  // Add a row to the batch
-  void add_row(const std::vector<std::string> &row);
-
-  // Flush the batch
-  void flush();
-
-  // Start auto-flush timer
-  void start_auto_flush();
-
-  // Stop auto-flush timer
-  void stop_auto_flush();
-
-private:
-  void check_and_flush();
-
-  std::shared_ptr<ClickHouseSender> sender_;
-  std::string table_;
-  std::vector<std::string> columns_;
-  size_t batch_size_;
-  std::chrono::seconds batch_timeout_;
-  std::vector<std::vector<std::string>> batch_;
-  std::chrono::system_clock::time_point last_flush_;
-  bool auto_flush_running_ = false;
+  std::string user_;
+  std::string password_;
+  bool connected_;
 };
 
 } // namespace base

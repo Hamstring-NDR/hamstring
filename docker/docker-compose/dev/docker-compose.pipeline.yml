@@ -9,7 +9,7 @@ services:
     environment:
       - GROUP_ID=log_storage
     networks:
-      heidgaf:
+      hamstring:
 
   logcollector:
     build:
@@ -19,7 +19,7 @@ services:
     volumes:
       - ../../../config.yaml:/app/config.yaml
     networks:
-      heidgaf:
+      hamstring:
     environment:
       - GROUP_ID=log_collection
   prefilter:
@@ -30,7 +30,7 @@ services:
     volumes:
       - ../../../config.yaml:/app/config.yaml
     networks:
-      heidgaf:
+      hamstring:
     deploy:
       mode: "replicated"
       replicas: 1
@@ -45,7 +45,7 @@ services:
     volumes:
       - ../../../config.yaml:/app/config.yaml
     networks:
-      heidgaf:
+      hamstring:
     deploy:
       mode: "replicated"
       replicas: 1
@@ -67,7 +67,7 @@ services:
     volumes:
       - ../../../config.yaml:/app/config.yaml
     networks:
-      heidgaf:
+      hamstring:
     deploy:
       mode: "replicated"
       replicas: 1

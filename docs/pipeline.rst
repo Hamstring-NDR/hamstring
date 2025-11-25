@@ -7,7 +7,7 @@ Overview
 The core component of the software's architecture is its data pipeline. It consists of five stages/modules, and data
 traverses through it using Apache Kafka.
 
-.. image:: media/heidgaf_architecture.png
+.. image:: media/hamstring_architecture.png
 
 
 Stage 1: Log Aggregation

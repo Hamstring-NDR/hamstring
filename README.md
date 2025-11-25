@@ -60,7 +60,7 @@
 
 ## Getting Started
 
-#### Run **heiDGAF** using Docker Compose:
+#### Run **HAMSTRING** using Docker Compose:
 ```sh
 HOST_IP=127.0.0.1 docker compose -f docker/docker-compose.yml --profile prod up
 ```
@@ -98,7 +98,7 @@ python src/inspector/inspector.py
 
 ### Configuration
 
-To configure **heiDGAF** according to your needs, use the provided `config.yaml`.
+To configure **HAMSTRING** according to your needs, use the provided `config.yaml`.
 
 The most relevant settings are related to your specific log line format, the model you want to use, and
 possibly infrastructure.
@@ -289,7 +289,7 @@ This will create a `rules.txt` file containing the innards of the model, explain
 > We support custom schemes.
 
 Depending on your data and usecase, you can customize the data scheme to fit your needs.
-The below configuration is part of the [main configuration file](./config.yaml) which is detailed in our [documentation](https://heidgaf.readthedocs.io/en/latest/usage.html#id2)
+The below configuration is part of the [main configuration file](./config.yaml) which is detailed in our [documentation](https://HAMSTRING.readthedocs.io/en/latest/usage.html#id2)
 
 ```yml
 loglines:

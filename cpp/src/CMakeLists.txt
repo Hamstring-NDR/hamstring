@@ -20,13 +20,14 @@ add_library(hamstring_base
 
 target_link_libraries(hamstring_base
     PUBLIC
-        yaml-cpp
         spdlog::spdlog
         fmt::fmt
+        RdKafka::rdkafka
+        RdKafka::rdkafka++
         nlohmann_json::nlohmann_json
+        yaml-cpp
         OpenSSL::SSL
         OpenSSL::Crypto
-        RdKafka::rdkafka++
 )
 
 target_include_directories(hamstring_base
@@ -39,5 +40,5 @@ add_subdirectory(logserver)
 add_subdirectory(logcollector)
 add_subdirectory(prefilter)
 add_subdirectory(inspector)
-add_subdirectory(detector)
+# add_subdirectory(detector)  # Requires ONNX Runtime
 # add_subdirectory(monitoring)

@@ -18,6 +18,6 @@ services:
       grafana:
         condition: service_healthy
     networks:
-      - heidgaf
+      - hamstring
     environment:
       - GROUP_ID=monitoring_agent

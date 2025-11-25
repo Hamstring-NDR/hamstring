@@ -5,6 +5,7 @@
 #include "hamstring/base/kafka_handler.hpp"
 #include "hamstring/base/logger.hpp"
 #include "hamstring/config/config.hpp"
+#include "hamstring/inspector/anomaly_detector.hpp"
 #include <atomic>
 #include <memory>
 #include <string>
@@ -124,6 +125,7 @@ private:
   std::unique_ptr<base::KafkaConsumeHandler> consumer_;
   std::vector<std::unique_ptr<base::KafkaProduceHandler>> producers_;
   std::shared_ptr<base::ClickHouseSender> clickhouse_;
+  std::unique_ptr<AnomalyDetector> anomaly_detector_;
 
   // Threading
   std::atomic<bool> running_{false};

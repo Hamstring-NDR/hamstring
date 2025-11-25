@@ -37,6 +37,13 @@ Inspector::Inspector(const std::string &name, const std::string &consume_topic,
       config_->environment.clickhouse_hostname, 9000, "hamstring", "default",
       "");
 
+  // Create anomaly detector with inspector config
+  config::InspectorConfig inspector_config;
+  inspector_config.anomaly_threshold = anomaly_threshold_;
+  inspector_config.score_threshold = score_threshold_;
+  inspector_config.time_range = 100; // Default window size
+  anomaly_detector_ = std::make_unique<AnomalyDetector>(inspector_config);
+
   logger_->info("Inspector '{}' created", name_);
   logger_->info("  Mode: {}", mode_);
   logger_->info("  Anomaly threshold: {}", anomaly_threshold_);
@@ -168,55 +175,38 @@ void Inspector::process_batch(const base::Batch &batch) {
 }
 
 bool Inspector::is_suspicious(const base::Batch &batch) {
-  // TODO: Implement actual anomaly detection
-  // For now, use simple heuristics
-
   if (batch.loglines.empty()) {
     return false;
   }
 
-  // Heuristic 1: Check if batch has NXDOMAIN responses (potential DGA)
-  int nxdomain_count = 0;
-  for (const auto &logline_ptr : batch.loglines) {
-    auto it = logline_ptr->fields.find("rcode");
-    if (it != logline_ptr->fields.end()) {
-      if (it->second == "NXDOMAIN" || it->second == "3") {
-        nxdomain_count++;
-      }
-    }
+  // Use statistical anomaly detection
+  double suspicion_score = anomaly_detector_->analyze_batch(batch);
+
+  // Update detector state for future analysis
+  anomaly_detector_->update_state(batch);
+
+  // Log detailed statistics periodically
+  if (batches_consumed_ % 100 == 0) {
+    auto stats = anomaly_detector_->get_statistics();
+    logger_->debug(
+        "Anomaly detector stats: NXDOMAIN mean={:.3f} stddev={:.3f}, "
+        "domain_length mean={:.1f} stddev={:.1f}, samples={}",
+        stats.mean_nxdomain_rate, stats.stddev_nxdomain_rate,
+        stats.mean_domain_length, stats.stddev_domain_length,
+        stats.samples_count);
   }
 
-  double nxdomain_ratio =
-      static_cast<double>(nxdomain_count) / batch.loglines.size();
+  bool is_anomalous = suspicion_score > anomaly_threshold_;
 
-  // If more than 50% NXDOMAIN, considered suspicious
-  if (nxdomain_ratio > 0.5) {
-    logger_->debug("Batch suspicious: NXDOMAIN ratio = {:.2f}", nxdomain_ratio);
-    return true;
+  if (is_anomalous) {
+    logger_->info("Batch {} is SUSPICIOUS (score: {:.3f})", batch.batch_id,
+                  suspicion_score);
+  } else {
+    logger_->debug("Batch {} is normal (score: {:.3f})", batch.batch_id,
+                   suspicion_score);
   }
 
-  // Heuristic 2: Check for long domain names (potential DGA)
-  int long_domain_count = 0;
-  for (const auto &logline_ptr : batch.loglines) {
-    auto it = logline_ptr->fields.find("query");
-    if (it != logline_ptr->fields.end()) {
-      if (it->second.length() > 30) {
-        long_domain_count++;
-      }
-    }
-  }
-
-  double long_domain_ratio =
-      static_cast<double>(long_domain_count) / batch.loglines.size();
-
-  // If more than threshold have long domains, considered suspicious
-  if (long_domain_ratio > anomaly_threshold_) {
-    logger_->debug("Batch suspicious: long domain ratio = {:.2f}",
-                   long_domain_ratio);
-    return true;
-  }
-
-  return false;
+  return is_anomalous;
 }
 
 void Inspector::send_suspicious_batches(

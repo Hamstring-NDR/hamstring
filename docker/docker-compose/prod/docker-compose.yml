@@ -142,7 +142,7 @@ services:
     volumes:
       - ../data/test_pcaps/:/opt/static_files
 networks:
-  heidgaf:
+  hamstring:
     driver: bridge
     ipam:
       driver: default

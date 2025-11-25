@@ -31,11 +31,11 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 # Find packages
 find_package(yaml-cpp CONFIG REQUIRED)
 find_package(RdKafka CONFIG REQUIRED)
-# find_package(clickhouse-cpp CONFIG REQUIRED)  # TODO: Fix clickhouse-cpp
+# find_package(clickhouse-cpp CONFIG REQUIRED)  # No CMake config provided by vcpkg
 find_package(Boost REQUIRED COMPONENTS system thread)
 find_package(spdlog CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
-# find_package(onnxruntime CONFIG REQUIRED)  # TODO: Add ONNX support later
+# find_package(onnxruntime CONFIG REQUIRED)  # Optional for Detector module
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(OpenSSL REQUIRED)
 
