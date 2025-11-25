@@ -21,6 +21,9 @@
           nlohmann_json
           yaml-cpp
           openssl
+          curl
+          zlib
+          cyrus_sasl
           rdkafka
         ];
 
@@ -39,9 +42,21 @@
               "-DBUILD_TESTING=OFF"
             ];
             
+            # Don't use default cmake buildPhase, do it manually
+            dontUseCmakeBuildDir = true;
+            
+            configurePhase = ''
+              runHook preConfigure
+              cmake -B build -S . \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DBUILD_TESTING=OFF
+              runHook postConfigure
+            '';
+            
             buildPhase = ''
-              cmake -B build -S .
+              runHook preBuild
               cmake --build build --target ${name} -j$NIX_BUILD_CORES
+              runHook postBuild
             '';
             
             installPhase = ''
@@ -152,19 +167,7 @@
             };
           };
           
-          # All OCI images
-          oci-images = pkgs.buildEnv {
-            name = "hamstring-oci-images";
-            paths = [
-              self.packages.${system}.oci-logserver
-              self.packages.${system}.oci-logcollector
-              self.packages.${system}.oci-prefilter
-              self.packages.${system}.oci-inspector
-              self.packages.${system}.oci-zeek
-            ];
-          };
-          
-          # Default package builds all modules
+          # Default package builds all C++ modules (not OCI images)
           default = pkgs.buildEnv {
             name = "hamstring-pipeline";
             paths = [
