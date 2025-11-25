@@ -12,7 +12,13 @@ logger = get_logger()
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent  # heiDGAF directory
 
-LATENCIES_COMPARISON_FILENAME = "latency_comparison.png"
+OUTPUT_FILENAMES = {
+    "latency_comparison": "latency_comparison.png",
+    "fill_levels_comparison": "fill_levels_comparison.png",
+    "entering_processed_comparison": "entering_processed_comparison.png",
+    "latencies_boxplot": "latencies_boxplot.png",
+    "entering_processed_per_time": "entering_processed_per_minute.png",
+}
 
 
 class PlotGenerator:
@@ -170,7 +176,7 @@ class PlotGenerator:
             plt.legend()
 
         relative_output_filename = (
-            relative_output_directory_path / LATENCIES_COMPARISON_FILENAME
+            relative_output_directory_path / OUTPUT_FILENAMES["latency_comparison"]
         )
         absolute_output_filename = BASE_DIR / relative_output_filename
 
@@ -293,7 +299,7 @@ class PlotGenerator:
             plt.legend()
 
         relative_output_filename = (
-            relative_output_directory_path / "fill_levels_comparison.png"
+            relative_output_directory_path / OUTPUT_FILENAMES["fill_levels_comparison"]
         )
         absolute_output_filename = BASE_DIR / relative_output_filename
 
@@ -392,7 +398,8 @@ class PlotGenerator:
         plt.grid(color="lightgray")
 
         relative_output_filename = (
-            relative_output_directory_path / "entering_processed_comparison.png"
+            relative_output_directory_path
+            / OUTPUT_FILENAMES["entering_processed_comparison"]
         )
         absolute_output_filename = BASE_DIR / relative_output_filename
 
@@ -478,7 +485,7 @@ class PlotGenerator:
         plt.tight_layout()
 
         relative_output_filename = (
-            relative_output_directory_path / "latencies_boxplot.png"
+            relative_output_directory_path / OUTPUT_FILENAMES["latencies_boxplot"]
         )
         absolute_output_filename = BASE_DIR / relative_output_filename
 
@@ -614,7 +621,8 @@ class PlotGenerator:
         plt.grid(axis="y", linestyle="--")
 
         relative_output_filename = (
-            relative_output_directory_path / "entering_processed_per_minute.png"
+            relative_output_directory_path
+            / OUTPUT_FILENAMES["entering_processed_per_time"]
         )
         absolute_output_filename = BASE_DIR / relative_output_filename
 
