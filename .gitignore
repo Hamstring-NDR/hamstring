@@ -335,3 +335,4 @@ docs/api/
 !vcpkg.json
 !**/vcpkg.json
 !compile_commands.json
+vcpkg_installed
