@@ -22,20 +22,29 @@ Network Interface → Zeek → Kafka → C++ LogServer → C++ Pipeline
 
 ### Install Zeek
 
-**macOS:**
+**macOS (Homebrew):**
 ```bash
 brew install zeek
+
+# Verify installation path
+ls -la /opt/homebrew/opt/zeek/share/zeek/site/  # Apple Silicon
+ls -la /usr/local/opt/zeek/share/zeek/site/     # Intel Mac
 ```
 
 **Ubuntu/Debian:**
 ```bash
 sudo apt-get install zeek
+
+# Default path: /usr/local/zeek/share/zeek/site/
 ```
 
 **Verify Installation:**
 ```bash
 zeek --version
 # Should show: zeek version X.X.X
+
+# Python handler auto-detects installation path
+python -m src.zeek.zeek_handler --help
 ```
 
 ### Install Zeek Kafka Plugin
@@ -52,6 +61,20 @@ make install
 ## Running Zeek with C++ Pipeline
 
 ### Quick Start
+
+**Local Execution (macOS/Linux):**
+```bash
+# 1. Start Kafka (required)
+docker-compose up -d kafka1 kafka2 kafka3
+
+# 2. Start Zeek (auto-detects first sensor in config)
+python -m src.zeek.zeek_handler -c config.yaml
+
+# 3. Start C++ pipeline in separate terminals
+./start-pipeline.sh config.yaml
+```
+
+**Docker Execution:**
 
 ```bash
 # 1. Start Kafka (required)
@@ -76,7 +99,20 @@ python -m src.zeek.zeek_handler -c config.yaml
 
 ## Configuration
 
-### Zeek Configuration (`zeek/local.zeek`)
+### Zeek Configuration
+
+**Auto-Detection:** The Python handler automatically detects Zeek installation:
+- macOS Apple Silicon: `/opt/homebrew/opt/zeek/share/zeek/site/`
+- macOS Intel: `/usr/local/opt/zeek/share/zeek/site/`
+- Linux: `/usr/local/zeek/share/zeek/site/`
+
+**Manual Override:**
+```bash
+python -m src.zeek.zeek_handler -c config.yaml \
+  --zeek-config-location /custom/path/to/local.zeek
+```
+
+**Configuration File (`local.zeek`):**
 
 ```zeek
 @load policy/tuning/json-logs.zeek
