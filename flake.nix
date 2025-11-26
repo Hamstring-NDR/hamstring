@@ -101,9 +101,10 @@
 
         # Python environment for Zeek and Detector
         pythonEnv = pkgs.python3.withPackages (ps: with ps; [
+          # From requirements.zeek.txt
           pyyaml
           click
-          numpy
+          colorlog
           # Note: ONNX runtime would go here when available
         ]);
 
@@ -115,6 +116,13 @@
           logcollector = buildModule { name = "logcollector"; };
           prefilter = buildModule { name = "prefilter"; };
           inspector = buildModule { name = "inspector"; };
+          
+          # Zeek network capture (Python-based)
+          zeek = pkgs.writeScriptBin "hamstring-zeek" ''
+            #!${pkgs.bash}/bin/bash
+            export PYTHONPATH=${./src}:$PYTHONPATH
+            exec ${pythonEnv}/bin/python -m src.zeek.zeek_handler "$@"
+          '';
           
           # OCI images (Docker-compatible)
           oci-logserver = buildOciImage {
@@ -149,10 +157,13 @@
                 pythonEnv
                 coreutils
                 bash
-                # Copy source files
+                # Copy source files (Python handlers and Zeek configs)
                 (pkgs.runCommand "hamstring-src" {} ''
-                  mkdir -p $out/opt
-                  cp -r ${./src} $out/opt/src
+                  mkdir -p $out/opt/src
+                  
+                  # Copy Python modules
+                  cp -r ${./src/zeek} $out/opt/src/zeek
+                  cp -r ${./src/base} $out/opt/src/base
                 '')
               ];
             };
@@ -196,6 +207,10 @@
           inspector = {
             type = "app";
             program = "${self.packages.${system}.inspector}/bin/inspector";
+          };
+          zeek = {
+            type = "app";
+            program = "${self.packages.${system}.zeek}/bin/hamstring-zeek";
           };
         };
 
