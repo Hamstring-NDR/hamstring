@@ -50,6 +50,12 @@ public:
                                    const std::string &event,
                                    int64_t event_timestamp_ms);
 
+  // Failed loglines (LogCollector module)
+  void insert_failed_logline(const std::string &message_text,
+                             int64_t timestamp_in_ms,
+                             int64_t timestamp_failed_ms,
+                             const std::string &reason);
+
   // Generic methods
   void execute(const std::string &query);
   bool ping();

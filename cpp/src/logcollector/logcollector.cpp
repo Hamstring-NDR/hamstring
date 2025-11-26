@@ -433,8 +433,14 @@ void LogCollector::send_batches(const std::vector<base::Batch> &batches) {
 
 void LogCollector::log_failed_logline(const std::string &message,
                                       const std::string &reason) {
-  // TODO: Log to ClickHouse when implemented
   logger_->debug("Failed logline: {} (reason: {})", message, reason);
+
+  // Log to ClickHouse
+  auto now = std::chrono::system_clock::now();
+  auto timestamp_ms = base::utils::timestamp_to_ms(now);
+
+  clickhouse_->insert_failed_logline(message, timestamp_ms, timestamp_ms,
+                                     reason);
 }
 
 LogCollector::Stats LogCollector::get_stats() const {

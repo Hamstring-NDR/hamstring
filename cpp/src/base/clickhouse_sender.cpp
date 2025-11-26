@@ -183,5 +183,54 @@ void ClickHouseSender::insert_server_log_timestamp(
   }
 }
 
+void ClickHouseSender::insert_failed_logline(const std::string &message_text,
+                                             int64_t timestamp_in_ms,
+                                             int64_t timestamp_failed_ms,
+                                             const std::string &reason) {
+  if (!connected_ || !client_) {
+    auto logger = Logger::get_logger("clickhouse");
+    logger->warn("ClickHouse not connected, skipping failed_logline insert");
+    return;
+  }
+
+  try {
+    // Create block with columns
+    clickhouse::Block block;
+
+    // message_text as String
+    auto col_message = std::make_shared<clickhouse::ColumnString>();
+    col_message->Append(message_text);
+
+    // timestamp_in as DateTime64(6)
+    auto col_timestamp_in = std::make_shared<clickhouse::ColumnDateTime64>(6);
+    col_timestamp_in->Append(timestamp_in_ms *
+                             1000); // Convert ms to microseconds
+
+    // timestamp_failed as DateTime64(6)
+    auto col_timestamp_failed =
+        std::make_shared<clickhouse::ColumnDateTime64>(6);
+    col_timestamp_failed->Append(timestamp_failed_ms *
+                                 1000); // Convert ms to microseconds
+
+    // reason_for_failure as String (nullable in schema, but we always provide a
+    // value)
+    auto col_reason = std::make_shared<clickhouse::ColumnString>();
+    col_reason->Append(reason);
+
+    // Add columns to block
+    block.AppendColumn("message_text", col_message);
+    block.AppendColumn("timestamp_in", col_timestamp_in);
+    block.AppendColumn("timestamp_failed", col_timestamp_failed);
+    block.AppendColumn("reason_for_failure", col_reason);
+
+    // Insert block
+    client_->Insert("failed_loglines", block);
+
+  } catch (const std::exception &e) {
+    auto logger = Logger::get_logger("clickhouse");
+    logger->error("Failed to insert failed_logline: {}", e.what());
+  }
+}
+
 } // namespace base
 } // namespace hamstring
