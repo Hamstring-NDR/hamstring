@@ -28,11 +28,15 @@ target_link_libraries(hamstring_base
         yaml-cpp
         OpenSSL::SSL
         OpenSSL::Crypto
+        ${CLICKHOUSE_CPP_LIB}
+        ${ZSTD_LIB}
+        ${CITYHASH_LIB}
 )
 
 target_include_directories(hamstring_base
     PUBLIC
         ${CMAKE_SOURCE_DIR}/include
+        ${CLICKHOUSE_INCLUDE_DIR}
 )
 
 # Modules

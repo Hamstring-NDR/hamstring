@@ -140,11 +140,8 @@ void LogServer::log_message(const std::string &message_id,
 
   logger_->trace("Logging message {} to ClickHouse", message_id);
 
-  // TODO: Implement ClickHouse insert when clickhouse-cpp is available
-  // For now, just log
-  // clickhouse_->insert("server_logs",
-  //     {"message_id", "timestamp_in", "message_text"},
-  //     {{message_id, std::to_string(timestamp_ms), message}});
+  // Insert into ClickHouse server_logs table
+  clickhouse_->insert_server_log(message_id, timestamp_ms, message);
 }
 
 void LogServer::log_timestamp(const std::string &message_id,
@@ -156,10 +153,8 @@ void LogServer::log_timestamp(const std::string &message_id,
   logger_->trace("Logging timestamp {} event for message {}", event,
                  message_id);
 
-  // TODO: Implement ClickHouse insert when clickhouse-cpp is available
-  // clickhouse_->insert("server_logs_timestamps",
-  //     {"message_id", "event", "event_timestamp"},
-  //     {{message_id, event, std::to_string(timestamp_ms)}});
+  // Insert into ClickHouse server_logs_timestamps table
+  clickhouse_->insert_server_log_timestamp(message_id, event, timestamp_ms);
 }
 
 std::vector<std::shared_ptr<LogServer>>

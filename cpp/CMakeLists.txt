@@ -39,6 +39,38 @@ find_package(fmt CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(OpenSSL REQUIRED)
 
+# Manually find ClickHouse C++ library (no CMake config provided by vcpkg)
+find_library(CLICKHOUSE_CPP_LIB
+    NAMES clickhouse-cpp-lib libclickhouse-cpp-lib
+    PATHS ${CMAKE_SOURCE_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/lib
+    NO_DEFAULT_PATH
+)
+if(NOT CLICKHOUSE_CPP_LIB)
+    message(FATAL_ERROR "ClickHouse C++ library not found")
+endif()
+message(STATUS "Found ClickHouse C++ library: ${CLICKHOUSE_CPP_LIB}")
+
+# ClickHouse include directory
+set(CLICKHOUSE_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/include)
+message(STATUS "ClickHouse include directory: ${CLICKHOUSE_INCLUDE_DIR}")
+
+# Find ClickHouse dependencies (zstd and cityhash)
+find_library(ZSTD_LIB
+    NAMES zstd libzstd
+    PATHS ${CMAKE_SOURCE_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/lib
+    NO_DEFAULT_PATH
+)
+find_library(CITYHASH_LIB
+    NAMES cityhash libcityhash
+    PATHS ${CMAKE_SOURCE_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/lib
+    NO_DEFAULT_PATH
+)
+if(NOT ZSTD_LIB OR NOT CITYHASH_LIB)
+    message(FATAL_ERROR "ClickHouse dependencies not found (zstd: ${ZSTD_LIB}, cityhash: ${CITYHASH_LIB})")
+endif()
+message(STATUS "Found zstd: ${ZSTD_LIB}")
+message(STATUS "Found cityhash: ${CITYHASH_LIB}")
+
 # Include directories
 include_directories(${CMAKE_SOURCE_DIR}/include)
 

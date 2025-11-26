@@ -1,16 +1,17 @@
 #pragma once
 
+#include <clickhouse/client.h>
+#include <memory>
 #include <string>
 
 namespace hamstring {
 namespace base {
 
 /**
- * @brief ClickHouse stub for monitoring (logs to spdlog instead of database)
+ * @brief ClickHouse client for monitoring and logging
  *
- * This is a lightweight stub that provides the ClickHouse interface but
- * logs metrics instead of writing to a database. Useful for testing and
- * when ClickHouse is not available.
+ * Provides interface for inserting data into ClickHouse tables.
+ * Supports server logs, timestamps, batch tracking, and metrics.
  */
 class ClickHouseSender {
 public:
@@ -42,6 +43,13 @@ public:
                             const std::string &batch_id,
                             const std::string &src_ip);
 
+  // Server logs (LogServer module)
+  void insert_server_log(const std::string &message_id, int64_t timestamp_ms,
+                         const std::string &message_text);
+  void insert_server_log_timestamp(const std::string &message_id,
+                                   const std::string &event,
+                                   int64_t event_timestamp_ms);
+
   // Generic methods
   void execute(const std::string &query);
   bool ping();
@@ -53,6 +61,7 @@ private:
   std::string user_;
   std::string password_;
   bool connected_;
+  std::unique_ptr<clickhouse::Client> client_;
 };
 
 } // namespace base
