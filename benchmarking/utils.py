@@ -15,6 +15,9 @@ config = setup_config()
 BASE_DIR = Path(__file__).resolve().parent.parent  # project root directory
 
 CONFIG_FILEPATH = os.path.join(os.path.dirname(__file__), "./benchmark_config.yaml")
+DIRECTORY_STRUCTURE_FILEPATH = os.path.join(
+    os.path.dirname(__file__), "./data_directory_structure.yaml"
+)
 
 
 class ReadWriteUtils:
@@ -65,6 +68,63 @@ class ReadWriteUtils:
             raise
 
         return data
+
+    @staticmethod
+    def get_modules_to_csv_filepaths(for_plot: str, test_identifier: str):
+        try:
+            with open(DIRECTORY_STRUCTURE_FILEPATH, "r") as file:
+                data = yaml.safe_load(file)
+        except FileNotFoundError:
+            logger.critical(
+                f"File {DIRECTORY_STRUCTURE_FILEPATH} does not exist. Aborting..."
+            )
+            raise
+
+        try:
+            result = data[for_plot]["files"]
+        except KeyError:
+            logger.critical(
+                f"Invalid data directory structure configuration or given plot name does not exist"
+            )
+            raise
+
+        for module in result.keys():
+            filename = result[module]
+            result[module] = str(
+                Path(
+                    BASE_DIR / "benchmark_results" / test_identifier / "data" / filename
+                )
+            )
+
+        return result
+
+    @staticmethod
+    def get_plot_output_filepath(for_plot: str, file_identifier: str):
+        try:
+            with open(DIRECTORY_STRUCTURE_FILEPATH, "r") as file:
+                data = yaml.safe_load(file)
+        except FileNotFoundError:
+            logger.critical(
+                f"File {DIRECTORY_STRUCTURE_FILEPATH} does not exist. Aborting..."
+            )
+            raise
+
+        try:
+            output_filename = data[for_plot]["output_filename"]
+        except KeyError:
+            logger.critical(
+                f"Invalid data directory structure configuration or given plot name does not exist"
+            )
+            raise
+
+        output_filename = Path(
+            BASE_DIR
+            / "benchmark_results"
+            / file_identifier
+            / "graphs"
+            / output_filename
+        )
+        return output_filename
 
 
 class TimeUtils:
