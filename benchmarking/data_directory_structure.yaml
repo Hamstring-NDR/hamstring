@@ -18,8 +18,8 @@ latencies_boxplot:
     "Log Server": "logserver.csv"
     "Prefilter": "prefilter.csv"
 
-fill_levels:
-  output_filename: "fill_levels.png"
+fill_levels_comparison:
+  output_filename: "fill_levels_comparison.png"
   files:
     "Collector": "log_volumes/collector.csv"
     "Detector": "log_volumes/detector.csv"

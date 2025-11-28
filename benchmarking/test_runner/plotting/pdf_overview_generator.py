@@ -3,7 +3,6 @@ import os.path
 import sys
 from pathlib import Path
 
-import pandas as pd
 import pymupdf
 
 sys.path.append(os.getcwd())
@@ -25,6 +24,7 @@ from benchmarking.utils import ReadWriteUtils
 from benchmarking.test_runner.plotting.plot_generator import (
     LatencyComparisonPlotGenerator,
     EnteringProcessedTotalPlotGenerator,
+    FillLevelsComparisonPlotGenerator,
 )
 
 logger = get_logger()
@@ -339,12 +339,11 @@ class PDFOverviewGenerator:
 
 # Only for testing
 if __name__ == "__main__":
-    plot_generator = LatencyComparisonPlotGenerator(
+    LatencyComparisonPlotGenerator(
         test_identifier="20251117_200230_ramp_up",
         intervals_in_sec=[30, 30, 30, 30, 30, 30],
         data_rates_per_interval=[1, 10, 50, 100, 150, 200],
-    )
-    plot_generator.plot(median_smooth=True)
+    ).plot(median_smooth=True)
 
     MODULE_TO_CSV_FILENAME: dict[str, str] = {
         "Batch Handler": "batch_handler.csv",
@@ -366,56 +365,24 @@ if __name__ == "__main__":
             / filename
         )
 
-    plot_generator.plot_latencies_boxplot(
-        datafiles_to_names=module_to_filepath,
-        relative_output_directory_path=Path(
-            BASE_DIR / "benchmark_results/20251117_200230_ramp_up/graphs"
-        ),
-        fig_width=8.35,
-        fig_height=4.8,
-    )
+    # plot_generator.plot_latencies_boxplot(
+    #     datafiles_to_names=module_to_filepath,
+    #     relative_output_directory_path=Path(
+    #         BASE_DIR / "benchmark_results/20251117_200230_ramp_up/graphs"
+    #     ),
+    #     fig_width=8.35,
+    #     fig_height=4.8,
+    # )
 
-    MODULE_TO_CSV_FILENAME: dict[str, str] = {
-        "Collector": "collector.csv",
-        "Detector": "detector.csv",
-        "Inspector": "inspector.csv",
-        "Prefilter": "prefilter.csv",
-        "Batch Handler (Batch)": "batch_handler_batch.csv",
-        "Batch Handler (Buffer)": "batch_handler_buffer.csv",
-    }
-
-    module_to_filepath = (
-        MODULE_TO_CSV_FILENAME.copy()
-    )  # keep original dictionary unchanged
-    for module in MODULE_TO_CSV_FILENAME.keys():
-        filename = MODULE_TO_CSV_FILENAME[module]
-        module_to_filepath[module] = str(
-            Path(BASE_DIR / "benchmark_results/20251117_200230_ramp_up/data")
-            / "log_volumes"
-            / filename
-        )
-
-    plot_generator.plot_fill_levels(
-        datafiles_to_names=module_to_filepath,
-        relative_output_directory_path=Path(
-            BASE_DIR / "benchmark_results/20251117_200230_ramp_up/graphs"
-        ),
-        start_time=pd.Timestamp(
-            datetime.datetime(
-                year=2025, month=11, day=17, hour=18, minute=54, second=58
-            )
-        ),
-        median_smooth=True,
-        intervals_in_sec=[30, 30, 30, 30, 30, 30],
-        fig_width=8.35,
-        fig_height=4.8,
-    )
-
-    plot_generator = EnteringProcessedTotalPlotGenerator(
+    FillLevelsComparisonPlotGenerator(
         test_identifier="20251117_200230_ramp_up",
         intervals_in_sec=[30, 30, 30, 30, 30, 30],
-    )
-    plot_generator.plot()
+    ).plot(median_smooth=True)
+
+    EnteringProcessedTotalPlotGenerator(
+        test_identifier="20251117_200230_ramp_up",
+        intervals_in_sec=[30, 30, 30, 30, 30, 30],
+    ).plot()
 
     MODULE_TO_CSV_FILENAME: dict[str, str] = {
         "Entering": "entering_total.csv",
@@ -433,14 +400,14 @@ if __name__ == "__main__":
             / filename
         )
 
-    plot_generator.plot_entering_processed_per_minute(
-        datafiles_to_names=module_to_filepath,
-        relative_output_directory_path=Path(
-            BASE_DIR / "benchmark_results/20251117_200230_ramp_up/graphs"
-        ),
-        fig_width=8.35,
-        fig_height=4.8,
-    )
+    # plot_generator.plot_entering_processed_per_minute(
+    #     datafiles_to_names=module_to_filepath,
+    #     relative_output_directory_path=Path(
+    #         BASE_DIR / "benchmark_results/20251117_200230_ramp_up/graphs"
+    #     ),
+    #     fig_width=8.35,
+    #     fig_height=4.8,
+    # )
 
     generator = PDFOverviewGenerator(
         metadata_configuration=RampUpMetadata(),

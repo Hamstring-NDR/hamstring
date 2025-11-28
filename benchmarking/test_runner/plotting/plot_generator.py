@@ -34,129 +34,6 @@ class PlotGenerator:
     def plot(self, *args, **kwargs):
         raise NotImplementedError
 
-    def plot_fill_levels(
-        self,
-        datafiles_to_names: dict[str, str],
-        start_time: pd.Timestamp,
-        relative_output_directory_path: Path,
-        median_smooth: bool,
-        title: str = None,
-        x_label: str = "Time",
-        y_label: str = "Fill Level",
-        fig_width: int | float = 12.5,
-        fig_height: int | float = 4.5,
-        color_start_index: int = 0,
-        intervals_in_sec: Optional[list[int]] = None,
-    ):
-        """Creates a figure and plots the given fill level data as graphs. All graphs are plotted into the same figure,
-        which is then stored as a file.
-
-        Args:
-            datafiles_to_names (dict[str, str]): Dictionary of file names to show in the legend and their paths
-            start_time (pd.Timestamp): Time to be set as t = 0
-            relative_output_directory_path (Path): File path at which the figure should be stored
-            median_smooth (bool): True if the data should be smoothed, False by default
-            title (str): Title of the figure, None by default
-            x_label (str): Label x-axis, "Time" by default
-            y_label (str): Label y-axis, "Fill Level" by default
-            y_input_unit (str): Unit of the data given as input, "count" by default
-            fig_width (int | float): Width of the figure, 12.5 by default
-            fig_height (int | float): Height of the figure, 4.5 by default
-            color_start_index (int): First index of the color palette to be used, 0 by default
-            intervals_in_sec (Optional[list[int]]): Optional list of interval lengths in seconds
-        """
-        plt.figure(figsize=(fig_width, fig_height))
-
-        # initialize color palette
-        colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
-        cur_color_index = color_start_index
-
-        # load data from files
-        dataframes = {}
-        total_max_time = 0  # seconds
-        total_max_value = 0
-
-        for name, file in datafiles_to_names.items():
-            df = pd.read_csv(file, parse_dates=["timestamp"]).sort_values(
-                by="timestamp"
-            )
-
-            if df.empty:
-                continue  # skip empty datafiles
-
-            df["timestamp"] = (
-                df["timestamp"] - start_time.replace(tzinfo=None)
-            ).dt.total_seconds()
-
-            if median_smooth:
-                window_size = max(1, len(df) // 100)
-                df["entry_count"] = (
-                    df["entry_count"]
-                    .rolling(window=window_size, center=True, min_periods=1)
-                    .median()
-                )
-
-            dataframes[name] = df
-
-            df.loc[df["timestamp"].diff() > 2, "entry_count"] = np.nan
-
-            df_max_time = df["timestamp"].max()
-            if df_max_time > total_max_time:
-                total_max_time = df_max_time
-
-            df_max_value = df["entry_count"].max()
-            if df_max_value > total_max_value:
-                total_max_value = df_max_value
-
-        x_unit, x_scale = self._determine_time_unit(total_max_time, "seconds")
-
-        # plot data
-        for name, df in dataframes.items():
-            plt.yscale("log")
-            plt.plot(
-                df["timestamp"] / x_scale * (10**6),
-                df["entry_count"],
-                marker="o",
-                markersize=1,
-                label=name,
-                color=colors[cur_color_index],
-            )
-            cur_color_index += 1
-
-        # add interval lines
-        if intervals_in_sec is not None:
-            x_values = [0]
-            for i in intervals_in_sec:
-                x_values.append(x_values[-1] + i)
-            for x in x_values[1:]:
-                plt.axvline(x, color="gray", linestyle="--", linewidth=1)
-
-        # adjust settings
-        plt.xlim(left=0)
-
-        if x_unit == "s":
-            plt.gca().xaxis.set_major_locator(ticker.MultipleLocator(30))
-
-        y_label_additions = ""
-        if median_smooth:
-            y_label_additions = " (median-smoothed)"
-
-        plt.title(title)
-        plt.xlabel(f"{x_label} [{x_unit}]", labelpad=10)
-        plt.ylabel(f"{y_label}" + y_label_additions)
-        plt.grid(color="lightgray")
-
-        if len(datafiles_to_names) > 1:
-            plt.legend()
-
-        relative_output_filename = (
-            relative_output_directory_path / OUTPUT_FILENAMES["fill_levels_comparison"]
-        )
-        absolute_output_filename = BASE_DIR / relative_output_filename
-
-        plt.savefig(absolute_output_filename, dpi=300, bbox_inches="tight")
-        logger.info(f"File saved at {relative_output_filename}")
-
     def plot_latencies_boxplot(
         self,
         datafiles_to_names: dict[str, str],
@@ -612,8 +489,123 @@ class LatencyComparisonPlotGenerator(PlotGenerator):
                 )
 
 
-class FillLevelsPlotGenerator(PlotGenerator):
-    pass
+class FillLevelsComparisonPlotGenerator(PlotGenerator):
+
+    def __init__(
+        self,
+        test_identifier: str,
+        intervals_in_sec: Optional[list[int]] = None,
+    ):
+        plot_name = "fill_levels_comparison"
+        super().__init__(plot_name=plot_name, test_identifier=test_identifier)
+
+        self.intervals_in_sec = intervals_in_sec
+
+        self.default_fig_size = (8.35, 4.8)
+
+    def plot(
+        self,
+        median_smooth: bool,
+        fig_size: tuple[float, float] = None,
+        color_start_index: int = 0,
+    ):
+        """TODO
+        Creates a figure and plots the given fill level data as graphs. All graphs are plotted into the same figure,
+        which is then stored as a file.
+
+        Args:
+            median_smooth (bool): True if the data should be smoothed, False by default
+            color_start_index (int): First index of the color palette to be used, 0 by default
+        """
+        self._set_up_initial_figure(fig_size)
+        start_time = self._get_start_time()
+
+        colors = self._get_colors()  # initialize color palette for graphs
+        cur_color_index = color_start_index
+
+        total_max_time = 0  # seconds
+        total_max_value = 0
+
+        dataframes = {}
+        modules_to_csv_paths = ReadWriteUtils.get_modules_to_csv_filepaths(
+            self.plot_name, self.test_identifier
+        )
+
+        for name, file in modules_to_csv_paths.items():
+            df = pd.read_csv(file, parse_dates=["timestamp"]).sort_values(
+                by="timestamp"
+            )
+
+            if df.empty:
+                continue  # skip empty datafiles
+
+            df["timestamp"] = (
+                df["timestamp"] - start_time.replace(tzinfo=None)
+            ).dt.total_seconds()
+
+            if median_smooth:
+                window_size = max(1, len(df) // 100)
+                df["entry_count"] = (
+                    df["entry_count"]
+                    .rolling(window=window_size, center=True, min_periods=1)
+                    .median()
+                )
+
+            dataframes[name] = df
+            df.loc[df["timestamp"].diff() > 2, "entry_count"] = np.nan  # fill gaps
+
+            df_max_time = df["timestamp"].max()
+            if df_max_time > total_max_time:
+                total_max_time = df_max_time
+
+            df_max_value = df["entry_count"].max()
+            if df_max_value > total_max_value:
+                total_max_value = df_max_value
+
+        x_unit, x_scale = self._determine_time_unit(total_max_time, "seconds")
+
+        for name, df in dataframes.items():
+            plt.yscale("log")
+            plt.plot(
+                df["timestamp"] / x_scale * (10**6),
+                df["entry_count"],
+                marker="o",
+                markersize=1,
+                label=name,
+                color=colors[cur_color_index],
+            )
+            cur_color_index += 1
+
+        self._add_interval_lines(self.intervals_in_sec)
+
+        plt.xlim(left=0)
+        self._set_x_ticks(x_unit)
+
+        self._activate_grid()
+        self._set_labels(x_unit, median_smooth)
+
+        if len(modules_to_csv_paths) > 1:
+            plt.legend()
+
+        self.save_to_file()
+
+    @staticmethod
+    def _get_x_label():
+        return "Time"
+
+    @staticmethod
+    def _get_y_label():
+        return "Fill Level"
+
+    def _set_labels(self, x_unit: str, median_smooth: bool):
+        plt.xlabel(f"{self._get_x_label()} [{x_unit}]", labelpad=10)
+        plt.ylabel(
+            f"{self._get_y_label()}" + (" (median-smoothed)" if median_smooth else "")
+        )
+
+    @staticmethod
+    def _activate_grid():
+        plt.grid(color="lightgray")
 
 
 class EnteringProcessedTotalPlotGenerator(PlotGenerator):
