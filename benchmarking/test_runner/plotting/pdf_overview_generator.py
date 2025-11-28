@@ -472,7 +472,7 @@ if __name__ == "__main__":
     )
 
     generator.setup_first_page_layout(
-        test_directory_identifier="20251117_200230_ramp_up",
+        test_identifier="20251117_200230_ramp_up",
         benchmark_test_date=datetime.date(2025, 11, 17),
     )
 
