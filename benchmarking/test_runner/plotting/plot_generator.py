@@ -7,13 +7,13 @@ import pandas as pd
 from matplotlib import pyplot as plt, ticker
 
 from src.base.log_config import get_logger
+from utils import ReadWriteUtils
 
 logger = get_logger()
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent  # project root directory
 
 OUTPUT_FILENAMES = {
-    "latency_comparison": "latency_comparison.png",
     "fill_levels_comparison": "fill_levels_comparison.png",
     "entering_processed_comparison": "entering_processed_comparison.png",
     "latencies_boxplot": "latencies_boxplot.png",
@@ -24,164 +24,15 @@ OUTPUT_FILENAMES = {
 class PlotGenerator:
     """Plots given data and combines it into figures."""
 
-    def plot_latency(
-        self,
-        datafiles_to_names: dict[str, str],
-        start_time: pd.Timestamp,
-        relative_output_directory_path: Path,
-        median_smooth: bool,
-        title: str = None,
-        x_label: str = "Time",
-        y_label: str = "Latency",
-        y_input_unit: str = "microseconds",
-        fig_width: int | float = 12.5,
-        fig_height: int | float = 4.5,
-        color_start_index: int = 0,
-        intervals_in_sec: Optional[list[int]] = None,
-        datarates_per_interval: Optional[list[int]] = None,
-    ):
-        """Creates a figure and plots the given latency data as graphs. All graphs are plotted into the same figure,
-        which is then stored as a file.
+    def __init__(self, plot_name: str, test_identifier: str):
+        self.plot_name = plot_name
+        self.test_identifier = test_identifier
+        self.metadata = ReadWriteUtils.get_metadata(test_identifier)
 
-        Args:
-            datafiles_to_names (dict[str, str]): Dictionary of file names to show in the legend and their paths
-            start_time (pd.Timestamp): Time to be set as t = 0
-            relative_output_directory_path (Path): File path at which the figure should be stored
-            median_smooth (bool): True if the data should be smoothed, False by default
-            title (str): Title of the figure, None by default
-            x_label (str): Label x-axis, "Time" by default
-            y_label (str): Label y-axis, "Latency" by default
-            y_input_unit (str): Unit of the data given as input, "microseconds" by default
-            fig_width (int | float): Width of the figure, 10 by default
-            fig_height (int | float): Height of the figure, 5 by default
-            color_start_index (int): First index of the color palette to be used, 0 by default
-            intervals_in_sec (Optional[list[int]]): Optional list of interval lengths in seconds
-            datarates_per_interval (Optional[list[int]]): Optional list of data rates per interval
-        """
-        plt.figure(figsize=(fig_width, fig_height))
+        self.default_fig_size = (10, 5)
 
-        # initialize color palette
-        colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
-        cur_color_index = color_start_index
-
-        # load data from files
-        dataframes = {}
-        total_max_time = 0  # seconds
-        total_max_value = 0
-
-        for name, file in datafiles_to_names.items():
-            df = pd.read_csv(file, parse_dates=["time"]).sort_values(by="time")
-
-            if df.empty:
-                continue  # skip empty datafiles
-
-            df["time"] = (
-                df["time"] - start_time.replace(tzinfo=None)
-            ).dt.total_seconds()
-
-            if median_smooth:
-                window_size = max(1, len(df) // 100)
-                df["value"] = (
-                    df["value"]
-                    .rolling(window=window_size, center=True, min_periods=1)
-                    .median()
-                )
-
-            dataframes[name] = df
-
-            df.loc[df["time"].diff() > 2, "value"] = np.nan
-
-            df_max_time = df["time"].max()
-            if df_max_time > total_max_time:
-                total_max_time = df_max_time
-
-            df_max_value = df["value"].max()
-            if df_max_value > total_max_value:
-                total_max_value = df_max_value
-
-        x_unit, x_scale = self._determine_time_unit(total_max_time, "seconds")
-        y_unit, y_scale = self._determine_time_unit(total_max_value, y_input_unit)
-
-        # plot data
-        for name, df in dataframes.items():
-            plt.yscale("log")
-            plt.plot(
-                df["time"] / x_scale * (10**6),
-                df["value"] / y_scale,
-                marker="o",
-                markersize=1,
-                label=name,
-                color=colors[cur_color_index],
-            )
-            cur_color_index += 1
-
-        # add interval lines
-        if intervals_in_sec is not None:
-            x_values = [0]
-            for i in intervals_in_sec:
-                x_values.append(x_values[-1] + i)
-            for x in x_values[1:]:
-                plt.axvline(
-                    x, color="gray", linestyle="--", linewidth=1
-                )  # TODO: Check for different x_units
-
-        if (
-            intervals_in_sec is not None
-            and datarates_per_interval is not None
-            and len(intervals_in_sec) == len(datarates_per_interval)
-        ):
-            # prepare list of interval starting times
-            interval_starts_in_sec = [
-                sum(intervals_in_sec[:i]) for i in range(len(intervals_in_sec))
-            ]
-            interval_starts_in_sec.append(
-                sum(intervals_in_sec[: len(intervals_in_sec)])
-            )  # add interval after the test
-
-            # prepare list of data rates
-            datarates_per_interval.append(0)  # add 0 after the test
-
-            y_max = plt.ylim()[1]
-
-            for rate, interval_start in zip(
-                datarates_per_interval, interval_starts_in_sec
-            ):
-                plt.annotate(
-                    f"{rate:,}/s \u2192",  # arrow to the right
-                    xy=(interval_start, y_max),
-                    xytext=(0, 9),
-                    textcoords="offset points",
-                    ha="left",
-                    va="top",
-                    fontsize=7,
-                    color="gray",
-                )
-
-        # adjust settings
-        plt.xlim(left=0)
-
-        if x_unit == "s":
-            plt.gca().xaxis.set_major_locator(ticker.MultipleLocator(30))
-
-        y_label_additions = ""
-        if median_smooth:
-            y_label_additions = " (median-smoothed)"
-
-        plt.title(title)
-        plt.xlabel(f"{x_label} [{x_unit}]", labelpad=10)
-        plt.ylabel(f"{y_label} [{y_unit}]" + y_label_additions)
-        plt.grid(color="lightgray")
-
-        if len(datafiles_to_names) > 1:
-            plt.legend()
-
-        relative_output_filename = (
-            relative_output_directory_path / OUTPUT_FILENAMES["latency_comparison"]
-        )
-        absolute_output_filename = BASE_DIR / relative_output_filename
-
-        plt.savefig(absolute_output_filename, dpi=300, bbox_inches="tight")
-        logger.info(f"File saved at {relative_output_filename}")
+    def plot(self, *args, **kwargs):
+        raise NotImplementedError
 
     def plot_fill_levels(
         self,
@@ -629,6 +480,14 @@ class PlotGenerator:
         plt.savefig(absolute_output_filename, dpi=300, bbox_inches="tight")
         logger.info(f"File saved at {relative_output_filename}")
 
+    def save_to_file(self):
+        output_filepath = ReadWriteUtils.get_plot_output_filepath(
+            self.plot_name, self.test_identifier
+        )
+
+        plt.savefig(output_filepath, dpi=300, bbox_inches="tight")
+        logger.info(f"File saved at {output_filepath}")
+
     @staticmethod
     def _determine_time_unit(max_value: int, input_unit: str):
         max_value_in_seconds = datetime.timedelta(
@@ -656,3 +515,214 @@ class PlotGenerator:
         for (unit, factor), threshold in zip(units, thresholds):
             if max_value_in_microseconds < threshold:
                 return unit, factor
+
+    @staticmethod
+    def _get_colors():
+        return plt.rcParams["axes.prop_cycle"].by_key()["color"]
+
+    def _get_start_time(self) -> datetime.datetime:
+        return self.metadata["start_timestamp"]
+
+    @staticmethod
+    def _add_interval_lines(intervals_in_sec: Optional[list[int]]):
+        if intervals_in_sec is not None:
+            x_values = [0]
+
+            for i in intervals_in_sec:
+                x_values.append(x_values[-1] + i)
+
+            for x in x_values[1:]:
+                plt.axvline(
+                    x, color="gray", linestyle="--", linewidth=1
+                )  # TODO: Check for different x_units
+
+
+class LatencyComparisonPlotGenerator(PlotGenerator):
+
+    def __init__(
+        self,
+        test_identifier: str,
+        intervals_in_sec: Optional[list[int]] = None,
+        data_rates_per_interval: Optional[list[int]] = None,
+    ):
+        plot_name = "latency_comparison"
+        super().__init__(plot_name=plot_name, test_identifier=test_identifier)
+
+        self.intervals_in_sec = intervals_in_sec
+        self.data_rates_per_interval = data_rates_per_interval
+
+        self.default_fig_size = (12.5, 4.5)
+
+    def plot(
+        self,
+        median_smooth: bool,
+        fig_size: tuple[float, float] = None,
+        y_input_unit: str = "microseconds",
+        color_start_index: int = 0,
+    ):
+        """TODO
+        Creates a figure and plots the given latency data as graphs. All graphs are plotted into the same figure,
+                which is then stored as a file.
+
+                Args:
+                    median_smooth (bool): True if the data should be smoothed, False by default
+                    y_input_unit (str): Unit of the data given as input, "microseconds" by default
+                    fig_width (int | float): Width of the figure, 10 by default
+                    fig_height (int | float): Height of the figure, 5 by default
+                    color_start_index (int): First index of the color palette to be used, 0 by default
+        """
+        self._set_up_initial_figure(fig_size)
+        start_time = self._get_start_time()
+
+        colors = self._get_colors()  # initialize color palette for graphs
+        cur_color_index = color_start_index
+
+        total_max_time = 0  # seconds
+        total_max_value = 0
+
+        dataframes = {}
+        modules_to_csv_paths = ReadWriteUtils.get_modules_to_csv_filepaths(
+            self.plot_name, self.test_identifier
+        )
+
+        for name, file in modules_to_csv_paths.items():
+            df = pd.read_csv(file, parse_dates=["time"]).sort_values(by="time")
+
+            if df.empty:
+                continue  # skip empty datafiles
+
+            df["time"] = (
+                df["time"] - start_time.replace(tzinfo=None)
+            ).dt.total_seconds()
+
+            if median_smooth:
+                window_size = max(1, len(df) // 100)
+                df["value"] = (
+                    df["value"]
+                    .rolling(window=window_size, center=True, min_periods=1)
+                    .median()
+                )
+
+            dataframes[name] = df
+            df.loc[df["time"].diff() > 2, "value"] = np.nan  # fill gaps
+
+            df_max_time = df["time"].max()
+            if df_max_time > total_max_time:
+                total_max_time = df_max_time
+
+            df_max_value = df["value"].max()
+            if df_max_value > total_max_value:
+                total_max_value = df_max_value
+
+        x_unit, x_scale = self._determine_time_unit(total_max_time, "seconds")
+        y_unit, y_scale = self._determine_time_unit(total_max_value, y_input_unit)
+
+        for name, df in dataframes.items():
+            plt.yscale("log")
+            plt.plot(
+                df["time"] / x_scale * (10**6),
+                df["value"] / y_scale,
+                marker="o",
+                markersize=1,
+                label=name,
+                color=colors[cur_color_index],
+            )
+            cur_color_index += 1
+
+        self._add_interval_lines(self.intervals_in_sec)
+        self._add_interval_markings()
+
+        plt.xlim(left=0)
+        self._set_x_ticks(x_unit)
+
+        self._activate_grid()
+        self._set_labels(x_unit, y_unit, median_smooth)
+
+        if len(modules_to_csv_paths) > 1:
+            plt.legend()
+
+        self.save_to_file()
+
+    @staticmethod
+    def _get_x_label():
+        return "Time"
+
+    @staticmethod
+    def _get_y_label():
+        return "Latency"
+
+    def _set_labels(self, x_unit: str, y_unit: str, median_smooth: bool):
+        plt.xlabel(f"{self._get_x_label()} [{x_unit}]", labelpad=10)
+        plt.ylabel(
+            f"{self._get_y_label()} [{y_unit}]"
+            + (" (median-smoothed)" if median_smooth else "")
+        )
+
+    def _set_up_initial_figure(self, fig_size: Optional[tuple[float, float]]):
+        if fig_size is None:
+            fig_size = self.default_fig_size
+
+        fig_width = fig_size[0]
+        fig_height = fig_size[1]
+
+        plt.figure(figsize=(fig_width, fig_height))
+
+    def _add_interval_markings(self):
+        if (
+            self.intervals_in_sec is not None
+            and self.data_rates_per_interval is not None
+            and len(self.intervals_in_sec) == len(self.data_rates_per_interval)
+        ):
+            # prepare list of interval starting times
+            interval_starts_in_sec = [
+                sum(self.intervals_in_sec[:i])
+                for i in range(len(self.intervals_in_sec))
+            ]
+            interval_starts_in_sec.append(
+                sum(self.intervals_in_sec[: len(self.intervals_in_sec)])
+            )  # add interval after the test
+
+            # prepare list of data rates
+            data_rates_per_interval = self.data_rates_per_interval.copy()
+            data_rates_per_interval.append(0)  # add 0 after the test
+
+            y_max = plt.ylim()[1]
+
+            for rate, interval_start in zip(
+                data_rates_per_interval, interval_starts_in_sec
+            ):
+                plt.annotate(
+                    f"{rate:,}/s \u2192",  # arrow to the right
+                    xy=(interval_start, y_max),
+                    xytext=(0, 9),
+                    textcoords="offset points",
+                    ha="left",
+                    va="top",
+                    fontsize=7,
+                    color="gray",
+                )
+
+    @staticmethod
+    def _set_x_ticks(x_unit: str):
+        if x_unit == "s":
+            plt.gca().xaxis.set_major_locator(ticker.MultipleLocator(30))
+
+    @staticmethod
+    def _activate_grid():
+        plt.grid(color="lightgray")
+
+
+class FillLevelsPlotGenerator(PlotGenerator):
+    pass
+
+
+class EnteringProcessedTotalPlotGenerator(PlotGenerator):
+    pass
+
+
+class EnteringProcessedPerTimePlotGenerator(PlotGenerator):
+    pass
+
+
+class LatenciesBoxplotGenerator(PlotGenerator):
+    pass

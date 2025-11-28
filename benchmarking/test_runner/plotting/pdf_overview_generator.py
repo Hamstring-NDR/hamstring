@@ -22,7 +22,9 @@ from benchmarking.test_runner.plotting.metadata_configuration import (
     RampUpMetadata,
 )
 from benchmarking.utils import ReadWriteUtils
-from benchmarking.test_runner.plotting.plot_generator import PlotGenerator
+from benchmarking.test_runner.plotting.plot_generator import (
+    LatencyComparisonPlotGenerator,
+)
 
 logger = get_logger()
 
@@ -336,42 +338,13 @@ class PDFOverviewGenerator:
 
 # Only for testing
 if __name__ == "__main__":
-    plot_generator = PlotGenerator()
-
-    MODULE_TO_CSV_FILENAME: dict[str, str] = {
-        "Batch Handler": "batch_handler.csv",
-        "Collector": "collector.csv",
-        "Detector": "detector.csv",
-        "Inspector": "inspector.csv",
-        "Log Server": "logserver.csv",
-        "Prefilter": "prefilter.csv",
-    }
-
-    module_to_filepath = (
-        MODULE_TO_CSV_FILENAME.copy()
-    )  # keep original dictionary unchanged
-    for module in MODULE_TO_CSV_FILENAME.keys():
-        filename = MODULE_TO_CSV_FILENAME[module]
-        module_to_filepath[module] = str(
-            Path(BASE_DIR / "benchmark_results/20251117_200230_ramp_up/data")
-            / "latencies"
-            / filename
-        )
-
-    plot_generator.plot_latency(
-        datafiles_to_names=module_to_filepath,
-        relative_output_directory_path=Path(
-            BASE_DIR / "benchmark_results/20251117_200230_ramp_up/graphs"
-        ),
-        start_time=pd.Timestamp(
-            datetime.datetime(
-                year=2025, month=11, day=17, hour=18, minute=54, second=58
-            )
-        ),
-        median_smooth=True,
+    plot_generator = LatencyComparisonPlotGenerator(
+        test_identifier="20251117_200230_ramp_up",
         intervals_in_sec=[30, 30, 30, 30, 30, 30],
-        datarates_per_interval=[1, 10, 50, 100, 150, 200],
+        data_rates_per_interval=[1, 10, 50, 100, 150, 200],
     )
+
+    plot_generator.plot(median_smooth=True)
 
     MODULE_TO_CSV_FILENAME: dict[str, str] = {
         "Batch Handler": "batch_handler.csv",
