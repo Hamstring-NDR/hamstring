@@ -24,6 +24,7 @@ from benchmarking.test_runner.plotting.metadata_configuration import (
 from benchmarking.utils import ReadWriteUtils
 from benchmarking.test_runner.plotting.plot_generator import (
     LatencyComparisonPlotGenerator,
+    EnteringProcessedTotalPlotGenerator,
 )
 
 logger = get_logger()
@@ -90,7 +91,7 @@ class PDFOverviewGenerator:
                     / "benchmark_results"
                     / test_identifier
                     / "graphs"
-                    / "entering_processed_comparison.png"
+                    / "entering_processed_total.png"
                 ),
                 "fourth_detail_graph": Path(
                     BASE_DIR
@@ -343,7 +344,6 @@ if __name__ == "__main__":
         intervals_in_sec=[30, 30, 30, 30, 30, 30],
         data_rates_per_interval=[1, 10, 50, 100, 150, 200],
     )
-
     plot_generator.plot(median_smooth=True)
 
     MODULE_TO_CSV_FILENAME: dict[str, str] = {
@@ -411,36 +411,11 @@ if __name__ == "__main__":
         fig_height=4.8,
     )
 
-    MODULE_TO_CSV_FILENAME: dict[str, str] = {
-        "Entering": "entering_total.csv",
-        "Processed": "processed_total.csv",
-    }
-
-    module_to_filepath = (
-        MODULE_TO_CSV_FILENAME.copy()
-    )  # keep original dictionary unchanged
-    for module in MODULE_TO_CSV_FILENAME.keys():
-        filename = MODULE_TO_CSV_FILENAME[module]
-        module_to_filepath[module] = str(
-            Path(BASE_DIR / "benchmark_results/20251117_200230_ramp_up/data")
-            / "entering_processed"
-            / filename
-        )
-
-    plot_generator.plot_entering_processed(
-        datafiles_to_names=module_to_filepath,
-        relative_output_directory_path=Path(
-            BASE_DIR / "benchmark_results/20251117_200230_ramp_up/graphs"
-        ),
-        start_time=pd.Timestamp(
-            datetime.datetime(
-                year=2025, month=11, day=17, hour=18, minute=54, second=58
-            )
-        ),
+    plot_generator = EnteringProcessedTotalPlotGenerator(
+        test_identifier="20251117_200230_ramp_up",
         intervals_in_sec=[30, 30, 30, 30, 30, 30],
-        fig_width=8.35,
-        fig_height=4.8,
     )
+    plot_generator.plot()
 
     MODULE_TO_CSV_FILENAME: dict[str, str] = {
         "Entering": "entering_total.csv",

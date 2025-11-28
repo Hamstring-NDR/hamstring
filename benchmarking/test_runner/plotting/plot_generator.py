@@ -157,106 +157,6 @@ class PlotGenerator:
         plt.savefig(absolute_output_filename, dpi=300, bbox_inches="tight")
         logger.info(f"File saved at {relative_output_filename}")
 
-    def plot_entering_processed(
-        self,
-        datafiles_to_names: dict[str, str],
-        start_time: pd.Timestamp,
-        relative_output_directory_path: Path,
-        title: str = None,
-        x_label: str = "Time",
-        y_label: str = "Accumulated number of log lines",
-        fig_width: int | float = 10,
-        fig_height: int | float = 5,
-        color_start_index: int = 0,
-        intervals_in_sec: Optional[list[int]] = None,
-        downsample_factor: int = 500,
-    ):
-        """Creates a figure and plots the entering and processed log lines data. All graphs are plotted into the
-        same figure, which is then stored as a file.
-
-        Args:
-            datafiles_to_names (dict[str, str]): Dictionary of file names to show in the legend and their paths
-            start_time (pd.Timestamp): Time to be set as t = 0
-            relative_output_directory_path (Path): File path at which the figure should be stored
-            title (str): Title of the figure, None by default
-            x_label (str): Label x-axis, "Time" by default
-            y_label (str): Label y-axis, "Number of log lines" by default
-            fig_width (int | float): Width of the figure, 10 by default
-            fig_height (int | float): Height of the figure, 5 by default
-            color_start_index (int): First index of the color palette to be used, 0 by default
-            intervals_in_sec (Optional[list[int]]): Optional list of interval lengths in seconds
-            downsample_factor (int): Factor for downsampling data points, 500 by default
-        """
-        plt.figure(figsize=(fig_width, fig_height))
-
-        # initialize color palette
-        colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
-        cur_color_index = color_start_index
-
-        # load data from files
-        for name, file in datafiles_to_names.items():
-            # determine which timestamp column to use
-            df = pd.read_csv(file)
-
-            if df.empty:
-                continue  # skip empty datafiles
-
-            # check which timestamp column exists
-            if "timestamp_in" in df.columns:
-                timestamp_col = "timestamp_in"
-            elif "timestamp" in df.columns:
-                timestamp_col = "timestamp"
-            else:
-                logger.warning(f"No valid timestamp column found in {file}")
-                continue
-
-            # parse timestamp and sort
-            df[timestamp_col] = pd.to_datetime(df[timestamp_col])
-            df = df.sort_values(by=timestamp_col)
-
-            df["time"] = (
-                df[timestamp_col] - start_time.replace(tzinfo=None)
-            ).dt.total_seconds()
-
-            # downsample data for better performance
-            n = max(1, len(df) // downsample_factor)
-            plt.plot(
-                df["time"][::n],
-                df["cumulative_count"][::n],
-                linestyle="-",
-                label=name,
-                color=colors[cur_color_index],
-            )
-            cur_color_index += 1
-
-        # add interval lines
-        if intervals_in_sec is not None:
-            x_values = [0]
-            for i in intervals_in_sec:
-                x_values.append(x_values[-1] + i)
-            for x in x_values[1:]:
-                plt.axvline(x, color="gray", linestyle="--", linewidth=1)
-
-        # adjust settings
-        plt.xlim(left=0)
-        plt.ylim(bottom=0)
-        plt.gca().xaxis.set_major_locator(ticker.MultipleLocator(60))
-
-        plt.title(title)
-        plt.xlabel(f"{x_label} [s]", labelpad=10)
-        plt.ylabel(y_label)
-        plt.legend()
-        plt.grid(color="lightgray")
-
-        relative_output_filename = (
-            relative_output_directory_path
-            / OUTPUT_FILENAMES["entering_processed_comparison"]
-        )
-        absolute_output_filename = BASE_DIR / relative_output_filename
-
-        plt.savefig(absolute_output_filename, dpi=300, bbox_inches="tight")
-        logger.info(f"File saved at {relative_output_filename}")
-
     def plot_latencies_boxplot(
         self,
         datafiles_to_names: dict[str, str],
@@ -488,6 +388,15 @@ class PlotGenerator:
         plt.savefig(output_filepath, dpi=300, bbox_inches="tight")
         logger.info(f"File saved at {output_filepath}")
 
+    def _set_up_initial_figure(self, fig_size: Optional[tuple[float, float]]):
+        if fig_size is None:
+            fig_size = self.default_fig_size
+
+        fig_width = fig_size[0]
+        fig_height = fig_size[1]
+
+        plt.figure(figsize=(fig_width, fig_height))
+
     @staticmethod
     def _determine_time_unit(max_value: int, input_unit: str):
         max_value_in_seconds = datetime.timedelta(
@@ -522,6 +431,11 @@ class PlotGenerator:
 
     def _get_start_time(self) -> datetime.datetime:
         return self.metadata["start_timestamp"]
+
+    @staticmethod
+    def _set_x_ticks(x_unit: str):
+        if x_unit == "s":
+            plt.gca().xaxis.set_major_locator(ticker.MultipleLocator(30))
 
     @staticmethod
     def _add_interval_lines(intervals_in_sec: Optional[list[int]]):
@@ -658,14 +572,9 @@ class LatencyComparisonPlotGenerator(PlotGenerator):
             + (" (median-smoothed)" if median_smooth else "")
         )
 
-    def _set_up_initial_figure(self, fig_size: Optional[tuple[float, float]]):
-        if fig_size is None:
-            fig_size = self.default_fig_size
-
-        fig_width = fig_size[0]
-        fig_height = fig_size[1]
-
-        plt.figure(figsize=(fig_width, fig_height))
+    @staticmethod
+    def _activate_grid():
+        plt.grid(color="lightgray")
 
     def _add_interval_markings(self):
         if (
@@ -702,22 +611,112 @@ class LatencyComparisonPlotGenerator(PlotGenerator):
                     color="gray",
                 )
 
-    @staticmethod
-    def _set_x_ticks(x_unit: str):
-        if x_unit == "s":
-            plt.gca().xaxis.set_major_locator(ticker.MultipleLocator(30))
-
-    @staticmethod
-    def _activate_grid():
-        plt.grid(color="lightgray")
-
 
 class FillLevelsPlotGenerator(PlotGenerator):
     pass
 
 
 class EnteringProcessedTotalPlotGenerator(PlotGenerator):
-    pass
+
+    def __init__(
+        self,
+        test_identifier: str,
+        intervals_in_sec: Optional[list[int]] = None,
+    ):
+        plot_name = "entering_processed_total"
+        super().__init__(plot_name=plot_name, test_identifier=test_identifier)
+
+        self.intervals_in_sec = intervals_in_sec
+
+        self.default_fig_size = (8.35, 4.8)
+
+    def plot(
+        self,
+        fig_size: tuple[float, float] = None,
+        color_start_index: int = 0,
+        downsample_factor: int = 500,
+    ):
+        """TODO
+        Creates a figure and plots the entering and processed log lines data. All graphs are plotted into the
+        same figure, which is then stored as a file.
+
+        Args:
+            color_start_index (int): First index of the color palette to be used, 0 by default
+            downsample_factor (int): Factor for downsampling data points, 500 by default
+        """
+        self._set_up_initial_figure(fig_size)
+        start_time = self._get_start_time()
+
+        colors = self._get_colors()  # initialize color palette for graphs
+        cur_color_index = color_start_index
+
+        modules_to_csv_paths = ReadWriteUtils.get_modules_to_csv_filepaths(
+            self.plot_name, self.test_identifier
+        )
+
+        for name, file in modules_to_csv_paths.items():
+            df = pd.read_csv(file)
+
+            if df.empty:
+                continue  # skip empty datafiles
+
+            if "timestamp_in" in df.columns:
+                timestamp_col = (
+                    "timestamp_in"  # entering_total.csv contains "timestamp_in" column
+                )
+            elif "timestamp" in df.columns:
+                timestamp_col = (
+                    "timestamp"  # processed_total.csv contains "timestamp" column
+                )
+            else:
+                logger.warning(f"No valid timestamp column found in {file}")
+                continue
+
+            df[timestamp_col] = pd.to_datetime(df[timestamp_col])
+            df = df.sort_values(by=timestamp_col)
+
+            df["time"] = (
+                df[timestamp_col] - start_time.replace(tzinfo=None)
+            ).dt.total_seconds()
+
+            # downsample data for better performance
+            n = max(1, len(df) // downsample_factor)
+            plt.plot(
+                df["time"][::n],
+                df["cumulative_count"][::n],
+                linestyle="-",
+                label=name,
+                color=colors[cur_color_index],
+            )
+            cur_color_index += 1
+
+        self._add_interval_lines(self.intervals_in_sec)
+
+        plt.xlim(left=0)
+        self._set_x_ticks("s")  # TODO: Make more flexible
+
+        self._activate_grid()
+        self._set_labels()
+
+        plt.legend()
+
+        self.save_to_file()
+
+    @staticmethod
+    def _get_x_label():
+        return "Time"
+
+    @staticmethod
+    def _get_y_label():
+        return "Accumulated number of log lines"
+
+    def _set_labels(self):
+        plt.xlabel(f"{self._get_x_label()} [s]", labelpad=10)
+        plt.ylabel(self._get_y_label())
+
+    @staticmethod
+    def _activate_grid():
+        plt.grid(color="lightgray")
 
 
 class EnteringProcessedPerTimePlotGenerator(PlotGenerator):
