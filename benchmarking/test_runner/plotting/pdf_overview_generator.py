@@ -44,14 +44,14 @@ class PDFOverviewGenerator:
 
     def setup_first_page_layout(
         self,
-        test_directory_identifier: str = None,
+        test_identifier: str = None,
         input_file_paths: dict[str, Path] = None,
         benchmark_test_date: datetime.date = datetime.date.today(),
     ):
         """Adds the first page and configures its layout.
 
         Args:
-            test_directory_identifier (str): Identifying name of the benchmark_results directory for this test. Usually
+            test_identifier (str): Identifying name of the benchmark_results directory for this test. Usually
                                              of the form "20250101_120000_ramp_up".
             input_file_paths (dict[str, Path]): Dictionary of input file paths for each figure position. Is set
                                                 automatically to point to the graphs in
@@ -60,56 +60,51 @@ class PDFOverviewGenerator:
                                                 'heiDGAF/benchmark_results/[TEST_DIRECTORY_IDENTIFIER]/metadata.yml'.
             benchmark_test_date: Date on which the test finished.
         """
-        if input_file_paths is None and test_directory_identifier is not None:
+        if input_file_paths is None and test_identifier is not None:
             input_file_paths = {
                 "main_graph": Path(
                     BASE_DIR
                     / "benchmark_results"
-                    / test_directory_identifier
+                    / test_identifier
                     / "graphs"
                     / "latency_comparison.png"
                 ),
                 "first_detail_graph": Path(
                     BASE_DIR
                     / "benchmark_results"
-                    / test_directory_identifier
+                    / test_identifier
                     / "graphs"
                     / "latencies_boxplot.png"
                 ),
                 "second_detail_graph": Path(
                     BASE_DIR
                     / "benchmark_results"
-                    / test_directory_identifier
+                    / test_identifier
                     / "graphs"
                     / "fill_levels_comparison.png"
                 ),
                 "third_detail_graph": Path(
                     BASE_DIR
                     / "benchmark_results"
-                    / test_directory_identifier
+                    / test_identifier
                     / "graphs"
                     / "entering_processed_comparison.png"
                 ),
                 "fourth_detail_graph": Path(
                     BASE_DIR
                     / "benchmark_results"
-                    / test_directory_identifier
+                    / test_identifier
                     / "graphs"
                     / "entering_processed_per_minute.png"
                 ),
                 "metadata": Path(
-                    BASE_DIR
-                    / "benchmark_results"
-                    / test_directory_identifier
-                    / "metadata.yml"
+                    BASE_DIR / "benchmark_results" / test_identifier / "metadata.yml"
                 ),
             }
-        elif input_file_paths is None and test_directory_identifier is None:
-            raise ValueError(
-                "Either test_directory_identifier or input_file_paths must be set"
-            )
+        elif input_file_paths is None and test_identifier is None:
+            raise ValueError("Either test_identifier or input_file_paths must be set")
 
-        metadata = ReadWriteUtils.load_metadata(input_file_paths["metadata"])
+        metadata = ReadWriteUtils.get_metadata(test_identifier)
 
         page_margin, usable_width, usable_height = self.__prepare_overview_page()
 

@@ -10,7 +10,7 @@ from src.base.log_config import get_logger
 
 logger = get_logger()
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent  # heiDGAF directory
+BASE_DIR = Path(__file__).resolve().parent.parent.parent  # project root directory
 
 OUTPUT_FILENAMES = {
     "latency_comparison": "latency_comparison.png",

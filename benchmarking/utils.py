@@ -12,6 +12,8 @@ from src.base.utils import setup_config
 logger = get_logger()
 config = setup_config()
 
+BASE_DIR = Path(__file__).resolve().parent.parent  # project root directory
+
 CONFIG_FILEPATH = os.path.join(os.path.dirname(__file__), "./benchmark_config.yaml")
 
 
@@ -50,7 +52,11 @@ class ReadWriteUtils:
             raise
 
     @staticmethod
-    def load_metadata(metadata_filepath: Path):
+    def get_metadata(test_identifier: str):
+        metadata_filepath = Path(
+            BASE_DIR / "benchmark_results" / test_identifier / "metadata.yml"
+        )
+
         try:
             with open(metadata_filepath, "r") as file:
                 data = yaml.safe_load(file)

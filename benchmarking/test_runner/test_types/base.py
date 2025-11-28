@@ -179,7 +179,7 @@ class BaseTest:
 
         # add elements to report pdf
         generator.setup_first_page_layout(
-            test_directory_identifier=test_directory_identifier,
+            test_identifier=test_directory_identifier,
             benchmark_test_date=datetime.date(
                 self.metadata["end_timestamp"]
             ),  # TODO: Test
