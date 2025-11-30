@@ -25,6 +25,7 @@ from benchmarking.test_runner.plotting.plot_generator import (
     LatencyComparisonPlotGenerator,
     EnteringProcessedTotalPlotGenerator,
     FillLevelsComparisonPlotGenerator,
+    LatenciesBoxplotGenerator,
 )
 
 logger = get_logger()
@@ -343,41 +344,16 @@ if __name__ == "__main__":
         test_identifier="20251117_200230_ramp_up",
         intervals_in_sec=[30, 30, 30, 30, 30, 30],
         data_rates_per_interval=[1, 10, 50, 100, 150, 200],
-    ).plot(median_smooth=True)
+    ).plot()
 
-    MODULE_TO_CSV_FILENAME: dict[str, str] = {
-        "Batch Handler": "batch_handler.csv",
-        "Collector": "collector.csv",
-        "Detector": "detector.csv",
-        "Inspector": "inspector.csv",
-        "Log Server": "logserver.csv",
-        "Prefilter": "prefilter.csv",
-    }
-
-    module_to_filepath = (
-        MODULE_TO_CSV_FILENAME.copy()
-    )  # keep original dictionary unchanged
-    for module in MODULE_TO_CSV_FILENAME.keys():
-        filename = MODULE_TO_CSV_FILENAME[module]
-        module_to_filepath[module] = str(
-            Path(BASE_DIR / "benchmark_results/20251117_200230_ramp_up/data")
-            / "latencies"
-            / filename
-        )
-
-    # plot_generator.plot_latencies_boxplot(
-    #     datafiles_to_names=module_to_filepath,
-    #     relative_output_directory_path=Path(
-    #         BASE_DIR / "benchmark_results/20251117_200230_ramp_up/graphs"
-    #     ),
-    #     fig_width=8.35,
-    #     fig_height=4.8,
-    # )
+    LatenciesBoxplotGenerator(
+        test_identifier="20251117_200230_ramp_up",
+    ).plot()
 
     FillLevelsComparisonPlotGenerator(
         test_identifier="20251117_200230_ramp_up",
         intervals_in_sec=[30, 30, 30, 30, 30, 30],
-    ).plot(median_smooth=True)
+    ).plot()
 
     EnteringProcessedTotalPlotGenerator(
         test_identifier="20251117_200230_ramp_up",
