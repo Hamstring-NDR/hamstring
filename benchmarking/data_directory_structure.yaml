@@ -11,12 +11,12 @@ latency_comparison:
 latencies_boxplot:
   output_filename: "latencies_boxplot.png"
   files:
-    "Batch Handler": "batch_handler.csv"
-    "Collector": "collector.csv"
-    "Detector": "detector.csv"
-    "Inspector": "inspector.csv"
-    "Log Server": "logserver.csv"
-    "Prefilter": "prefilter.csv"
+    "Batch Handler": "latencies/batch_handler.csv"
+    "Collector": "latencies/collector.csv"
+    "Detector": "latencies/detector.csv"
+    "Inspector": "latencies/inspector.csv"
+    "Log Server": "latencies/logserver.csv"
+    "Prefilter": "latencies/prefilter.csv"
 
 fill_levels_comparison:
   output_filename: "fill_levels_comparison.png"
@@ -37,5 +37,5 @@ entering_processed_total:
 entering_processed_per_time:
   output_filename: "entering_processed_per_time.png"
   files:
-    "Entering": "entering_total.csv"
-    "Processed": "processed_loglines_and_failed_dns_per_minute.csv"
+    "Entering": "entering_processed/entering_total.csv"
+    "Processed": "entering_processed/processed_loglines_and_failed_dns_per_minute.csv"
