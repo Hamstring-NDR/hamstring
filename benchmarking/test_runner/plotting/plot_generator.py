@@ -439,7 +439,7 @@ class FillLevelsComparisonPlotGenerator(GraphPlotGenerator):
 
         self.intervals_in_sec = intervals_in_sec
 
-        self.default_fig_size = (8.35, 4.8)
+        self.default_fig_size = (8.35, 4.3)
 
     def plot(
         self,
@@ -706,6 +706,7 @@ class LatenciesBoxplotGenerator(PlotGenerator):
             labels.append(name)
 
         self.__plot_core(data, labels)
+        self._activate_grid()
         self._set_labels()
 
         self.save_to_file()
