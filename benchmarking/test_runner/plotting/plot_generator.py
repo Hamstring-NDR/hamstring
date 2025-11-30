@@ -1,4 +1,5 @@
 import datetime
+from abc import abstractmethod
 from pathlib import Path
 from typing import Optional
 
@@ -31,94 +32,13 @@ class PlotGenerator:
 
         self.default_fig_size = (10, 5)
 
+    @abstractmethod
     def plot(self, *args, **kwargs):
         raise NotImplementedError
 
-    def plot_latencies_boxplot(
-        self,
-        datafiles_to_names: dict[str, str],
-        relative_output_directory_path: Path,
-        title: str = None,
-        y_label: str = "Latency in module [s]",
-        y_input_unit: str = "microseconds",
-        fig_width: int | float = 7,
-        fig_height: int | float = 5,
-    ):
-        """Creates a boxplot figure showing latency distributions for different modules.
-
-        Args:
-            datafiles_to_names (dict[str, str]): Dictionary of file names to show in the legend and their paths
-            relative_output_directory_path (Path): File path at which the figure should be stored
-            title (str): Title of the figure, "Latencies per module" by default
-            y_label (str): Label y-axis, "Latency in module [s]" by default
-            y_input_unit (str): Unit of the data given as input, "microseconds" by default
-            fig_width (int | float): Width of the figure, 7 by default
-            fig_height (int | float): Height of the figure, 5 by default
-        """
-        plt.figure(figsize=(fig_width, fig_height))
-
-        data = []
-        labels = []
-
-        # load data from files
-        for name, file in datafiles_to_names.items():
-            df = pd.read_csv(file, parse_dates=["time"]).sort_values(by="time")
-
-            if df.empty:
-                continue  # skip empty datafiles
-
-            # convert to seconds based on input unit
-            if y_input_unit == "microseconds":
-                data.append(df["value"] / (10**6))
-            elif y_input_unit == "milliseconds":
-                data.append(df["value"] / (10**3))
-            elif y_input_unit == "seconds":
-                data.append(df["value"])
-            else:
-                data.append(df["value"])
-
-            labels.append(name)
-
-        # define box plot styling
-        boxprops = dict(color="black", linewidth=1)
-        whiskerprops = dict(color="black", linewidth=1)
-        capprops = dict(color="black", linewidth=1)
-        medianprops = dict(color="black", linewidth=1.5)
-        flierprops = dict(
-            marker="x",
-            markerfacecolor="lightgray",
-            markeredgecolor="lightgray",
-            markersize=4,
-            linestyle="none",
-        )
-
-        plt.boxplot(
-            data,
-            labels=labels,
-            vert=True,
-            patch_artist=False,  # no filled boxes
-            boxprops=boxprops,
-            whiskerprops=whiskerprops,
-            capprops=capprops,
-            medianprops=medianprops,
-            flierprops=flierprops,
-        )
-
-        plt.yscale("log")
-        plt.ylabel(y_label)
-        plt.title(title, fontsize=12)
-        plt.grid(axis="y", linestyle="--", linewidth=0.5, alpha=0.7)
-
-        plt.xticks(rotation=30, ha="right")
-        plt.tight_layout()
-
-        relative_output_filename = (
-            relative_output_directory_path / OUTPUT_FILENAMES["latencies_boxplot"]
-        )
-        absolute_output_filename = BASE_DIR / relative_output_filename
-
-        plt.savefig(absolute_output_filename, dpi=300, bbox_inches="tight")
-        logger.info(f"File saved at {relative_output_filename}")
+    @abstractmethod
+    def __plot_core(self, *args, **kwargs):
+        raise NotImplementedError
 
     def plot_entering_processed_per_minute(
         self,
@@ -275,7 +195,7 @@ class PlotGenerator:
         plt.figure(figsize=(fig_width, fig_height))
 
     @staticmethod
-    def _determine_time_unit(max_value: int, input_unit: str):
+    def _determine_time_unit(max_value: int, input_unit: str) -> [str, int]:
         max_value_in_seconds = datetime.timedelta(
             **{input_unit: int(max_value)}
         ).total_seconds()
@@ -306,6 +226,9 @@ class PlotGenerator:
     def _get_colors():
         return plt.rcParams["axes.prop_cycle"].by_key()["color"]
 
+
+class GraphPlotGenerator(PlotGenerator):
+
     def _get_start_time(self) -> datetime.datetime:
         return self.metadata["start_timestamp"]
 
@@ -327,8 +250,18 @@ class PlotGenerator:
                     x, color="gray", linestyle="--", linewidth=1
                 )  # TODO: Check for different x_units
 
+    @staticmethod
+    @abstractmethod
+    def _get_x_label() -> str:
+        raise NotImplementedError
 
-class LatencyComparisonPlotGenerator(PlotGenerator):
+    @staticmethod
+    @abstractmethod
+    def _get_y_label() -> str:
+        raise NotImplementedError
+
+
+class LatencyComparisonPlotGenerator(GraphPlotGenerator):
 
     def __init__(
         self,
@@ -346,8 +279,8 @@ class LatencyComparisonPlotGenerator(PlotGenerator):
 
     def plot(
         self,
-        median_smooth: bool,
         fig_size: tuple[float, float] = None,
+        median_smooth: bool = True,
         y_input_unit: str = "microseconds",
         color_start_index: int = 0,
     ):
@@ -409,15 +342,7 @@ class LatencyComparisonPlotGenerator(PlotGenerator):
         y_unit, y_scale = self._determine_time_unit(total_max_value, y_input_unit)
 
         for name, df in dataframes.items():
-            plt.yscale("log")
-            plt.plot(
-                df["time"] / x_scale * (10**6),
-                df["value"] / y_scale,
-                marker="o",
-                markersize=1,
-                label=name,
-                color=colors[cur_color_index],
-            )
+            self.__plot_core(name, df, x_scale, y_scale, colors[cur_color_index])
             cur_color_index += 1
 
         self._add_interval_lines(self.intervals_in_sec)
@@ -433,6 +358,19 @@ class LatencyComparisonPlotGenerator(PlotGenerator):
             plt.legend()
 
         self.save_to_file()
+
+    def __plot_core(
+        self, name: str, df: pd.DataFrame, x_scale: int, y_scale: int, color
+    ):
+        plt.yscale("log")
+        plt.plot(
+            df["time"] / x_scale * (10**6),
+            df["value"] / y_scale,
+            marker="o",
+            markersize=1,
+            label=name,
+            color=color,
+        )
 
     @staticmethod
     def _get_x_label():
@@ -489,7 +427,7 @@ class LatencyComparisonPlotGenerator(PlotGenerator):
                 )
 
 
-class FillLevelsComparisonPlotGenerator(PlotGenerator):
+class FillLevelsComparisonPlotGenerator(GraphPlotGenerator):
 
     def __init__(
         self,
@@ -505,8 +443,8 @@ class FillLevelsComparisonPlotGenerator(PlotGenerator):
 
     def plot(
         self,
-        median_smooth: bool,
         fig_size: tuple[float, float] = None,
+        median_smooth: bool = True,
         color_start_index: int = 0,
     ):
         """TODO
@@ -565,15 +503,7 @@ class FillLevelsComparisonPlotGenerator(PlotGenerator):
         x_unit, x_scale = self._determine_time_unit(total_max_time, "seconds")
 
         for name, df in dataframes.items():
-            plt.yscale("log")
-            plt.plot(
-                df["timestamp"] / x_scale * (10**6),
-                df["entry_count"],
-                marker="o",
-                markersize=1,
-                label=name,
-                color=colors[cur_color_index],
-            )
+            self.__plot_core(name, df, x_scale, colors[cur_color_index])
             cur_color_index += 1
 
         self._add_interval_lines(self.intervals_in_sec)
@@ -588,6 +518,17 @@ class FillLevelsComparisonPlotGenerator(PlotGenerator):
             plt.legend()
 
         self.save_to_file()
+
+    def __plot_core(self, name: str, df: pd.DataFrame, x_scale: int, color):
+        plt.yscale("log")
+        plt.plot(
+            df["timestamp"] / x_scale * (10**6),
+            df["entry_count"],
+            marker="o",
+            markersize=1,
+            label=name,
+            color=color,
+        )
 
     @staticmethod
     def _get_x_label():
@@ -608,7 +549,7 @@ class FillLevelsComparisonPlotGenerator(PlotGenerator):
         plt.grid(color="lightgray")
 
 
-class EnteringProcessedTotalPlotGenerator(PlotGenerator):
+class EnteringProcessedTotalPlotGenerator(GraphPlotGenerator):
 
     def __init__(
         self,
@@ -666,20 +607,11 @@ class EnteringProcessedTotalPlotGenerator(PlotGenerator):
 
             df[timestamp_col] = pd.to_datetime(df[timestamp_col])
             df = df.sort_values(by=timestamp_col)
-
             df["time"] = (
                 df[timestamp_col] - start_time.replace(tzinfo=None)
             ).dt.total_seconds()
 
-            # downsample data for better performance
-            n = max(1, len(df) // downsample_factor)
-            plt.plot(
-                df["time"][::n],
-                df["cumulative_count"][::n],
-                linestyle="-",
-                label=name,
-                color=colors[cur_color_index],
-            )
+            self.__plot_core(name, df, downsample_factor, colors[cur_color_index])
             cur_color_index += 1
 
         self._add_interval_lines(self.intervals_in_sec)
@@ -693,6 +625,16 @@ class EnteringProcessedTotalPlotGenerator(PlotGenerator):
         plt.legend()
 
         self.save_to_file()
+
+    def __plot_core(self, name: str, df: pd.DataFrame, downsample_factor: int, color):
+        n = max(1, len(df) // downsample_factor)  # downsample for better performance
+        plt.plot(
+            df["time"][::n],
+            df["cumulative_count"][::n],
+            linestyle="-",
+            label=name,
+            color=color,
+        )
 
     @staticmethod
     def _get_x_label():
@@ -716,4 +658,114 @@ class EnteringProcessedPerTimePlotGenerator(PlotGenerator):
 
 
 class LatenciesBoxplotGenerator(PlotGenerator):
-    pass
+
+    def __init__(
+        self,
+        test_identifier: str,
+    ):
+        plot_name = "latencies_boxplot"
+        super().__init__(plot_name=plot_name, test_identifier=test_identifier)
+
+        self.default_fig_size = (8.35, 4.8)
+
+    def plot(
+        self,
+        fig_size: tuple[float, float] = None,
+        y_input_unit: str = "microseconds",
+    ):
+        """Creates a boxplot figure showing latency distributions for different modules.
+
+        Args:
+            y_input_unit (str): Unit of the data given as input, "microseconds" by default
+        """
+        self._set_up_initial_figure(fig_size)
+
+        modules_to_csv_paths = ReadWriteUtils.get_modules_to_csv_filepaths(
+            self.plot_name, self.test_identifier
+        )
+
+        data = []
+        labels = []
+
+        for name, file in modules_to_csv_paths.items():
+            df = pd.read_csv(file, parse_dates=["time"]).sort_values(by="time")
+
+            if df.empty:
+                continue  # skip empty datafiles
+
+            # convert to seconds based on input unit
+            if y_input_unit == "microseconds":
+                data.append(df["value"] / (10**6))
+            elif y_input_unit == "milliseconds":
+                data.append(df["value"] / (10**3))
+            elif y_input_unit == "seconds":
+                data.append(df["value"])
+            else:
+                data.append(df["value"])
+
+            labels.append(name)
+
+        self.__plot_core(data, labels)
+        self._set_labels()
+
+        self.save_to_file()
+
+    def __plot_core(self, data: list, labels: list):
+        boxplot_style = self._get_boxplot_style()
+
+        plt.yscale("log")
+        plt.tight_layout()
+        plt.boxplot(
+            data,
+            labels=labels,
+            vert=True,
+            patch_artist=False,  # no filled boxes
+            boxprops=boxplot_style.get("boxprops"),
+            whiskerprops=boxplot_style.get("whiskerprops"),
+            capprops=boxplot_style.get("capprops"),
+            medianprops=boxplot_style.get("medianprops"),
+            flierprops=boxplot_style.get("flierprops"),
+        )
+
+    @staticmethod
+    def _get_y_label():
+        return "Latency in module [s]"  # TODO: Make more flexible
+
+    def _set_labels(self):
+        plt.ylabel(self._get_y_label())
+
+    @staticmethod
+    def _get_boxplot_style() -> dict:
+        return {
+            "boxprops": dict(
+                color="black",
+                linewidth=1,
+            ),
+            "whiskerprops": dict(
+                color="black",
+                linewidth=1,
+            ),
+            "capprops": dict(
+                color="black",
+                linewidth=1,
+            ),
+            "medianprops": dict(
+                color="black",
+                linewidth=1.5,
+            ),
+            "flierprops": dict(
+                marker="x",
+                markerfacecolor="lightgray",
+                markeredgecolor="lightgray",
+                markersize=4,
+                linestyle="none",
+            ),
+        }
+
+    @staticmethod
+    def _activate_grid():
+        plt.grid(axis="y", linestyle="--", linewidth=0.5, alpha=0.7)
+
+    @staticmethod
+    def _set_x_ticks():
+        plt.xticks(rotation=30, ha="right")
