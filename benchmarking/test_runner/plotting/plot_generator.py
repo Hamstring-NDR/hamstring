@@ -40,143 +40,6 @@ class PlotGenerator:
     def __plot_core(self, *args, **kwargs):
         raise NotImplementedError
 
-    def plot_entering_processed_per_minute(
-        self,
-        datafiles_to_names: dict[str, str],
-        relative_output_directory_path: Path,
-        title: str = None,
-        x_label: str = "Minutes since start",
-        y_label: str = "Log lines per minute",
-        fig_width: int | float = 10,
-        fig_height: int | float = 5,
-        bar_width: float = 0.7,
-        x_major_locator: int = 1,
-        y_major_locator: int = 2500,
-    ):
-        """Creates a bar chart showing entering and processed log lines per minute.
-        Processed data is displayed as negative bars for mirror effect.
-
-        Args:
-            datafiles_to_names (dict[str, str]): Dictionary of file names to show in the legend and their paths
-            relative_output_directory_path (Path): File path at which the figure should be stored
-            title (str): Title of the figure, None by default
-            x_label (str): Label x-axis, "Minutes since start" by default
-            y_label (str): Label y-axis, "Log lines per minute" by default
-            fig_width (int | float): Width of the figure, 10 by default
-            fig_height (int | float): Height of the figure, 5 by default
-            bar_width (float): Width of the bars, 0.7 by default
-            x_major_locator (int): Major tick interval for x-axis, 1 by default
-            y_major_locator (int): Major tick interval for y-axis, 2500 by default
-        """
-        plt.figure(figsize=(fig_width, fig_height))
-
-        start_time = None
-
-        # load data from files
-        for name, file in datafiles_to_names.items():
-            df = pd.read_csv(file)
-
-            if df.empty:
-                continue  # skip empty datafiles
-
-            # determine time column name (flexible handling)
-            if "time_bucket" in df.columns:
-                time_col = "time_bucket"
-            elif "timestamp_in" in df.columns:
-                time_col = "timestamp_in"
-            elif "timestamp" in df.columns:
-                time_col = "timestamp"
-            else:
-                raise ValueError(f"No recognized time column in {file}")
-
-            df[time_col] = pd.to_datetime(df[time_col])
-            df = df.sort_values(by=time_col)
-
-            if start_time is None:
-                start_time = df[time_col].min()
-
-            df["minutes_since_start"] = (
-                df[time_col] - start_time
-            ).dt.total_seconds() / 60
-
-            # determine count column name
-            if "count" in df.columns:
-                count_col = "count"
-                is_cumulative = False
-            elif "total_count" in df.columns:
-                count_col = "total_count"
-                is_cumulative = False
-            elif "cumulative_count" in df.columns:
-                count_col = "cumulative_count"
-                is_cumulative = True
-            else:
-                raise ValueError(f"No recognized count column in {file}")
-
-            # if data is cumulative, we need to convert to per-minute counts
-            if is_cumulative:
-                # group by minute buckets if not already aggregated
-                if time_col != "time_bucket":
-                    df["time_bucket"] = df[time_col].dt.floor("min")
-                    grouped = df.groupby("time_bucket")[count_col].last().reset_index()
-                    grouped["minutes_since_start"] = (
-                        grouped["time_bucket"] - start_time
-                    ).dt.total_seconds() / 60
-                else:
-                    grouped = df.copy()
-                    grouped["time_bucket"] = grouped[time_col]
-
-                # calculate per-minute count from cumulative values
-                grouped["count"] = grouped[count_col].diff()
-                grouped.loc[grouped.index[0], "count"] = grouped[count_col].iloc[0]
-
-                # filter out negative time values
-                grouped = grouped[grouped["minutes_since_start"] >= 0]
-
-                count_data = grouped["count"]
-                time_data = grouped["minutes_since_start"]
-            else:
-                # filter out negative time values
-                df = df[df["minutes_since_start"] >= 0]
-                count_data = df[count_col]
-                time_data = df["minutes_since_start"]
-
-            if "Entering" in name:
-                plt.bar(
-                    time_data,
-                    count_data,
-                    width=bar_width,
-                    align="edge",
-                    label=name,
-                )
-            else:
-                # plot processed data as negative bars for mirror effect
-                plt.bar(
-                    time_data,
-                    -count_data,
-                    width=bar_width,
-                    align="edge",
-                    label=name,
-                )
-
-        # adjust settings
-        plt.gca().xaxis.set_major_locator(ticker.MultipleLocator(x_major_locator))
-        plt.gca().yaxis.set_major_locator(ticker.MultipleLocator(y_major_locator))
-
-        plt.xlabel(x_label, labelpad=10)
-        plt.ylabel(y_label)
-        plt.title(title)
-        plt.legend()
-        plt.grid(axis="y", linestyle="--")
-
-        relative_output_filename = (
-            relative_output_directory_path
-            / OUTPUT_FILENAMES["entering_processed_per_time"]
-        )
-        absolute_output_filename = BASE_DIR / relative_output_filename
-
-        plt.savefig(absolute_output_filename, dpi=300, bbox_inches="tight")
-        logger.info(f"File saved at {relative_output_filename}")
-
     def save_to_file(self):
         output_filepath = ReadWriteUtils.get_plot_output_filepath(
             self.plot_name, self.test_identifier
@@ -184,6 +47,9 @@ class PlotGenerator:
 
         plt.savefig(output_filepath, dpi=300, bbox_inches="tight")
         logger.info(f"File saved at {output_filepath}")
+
+    def _get_start_time(self) -> datetime.datetime:
+        return self.metadata["start_timestamp"]
 
     def _set_up_initial_figure(self, fig_size: Optional[tuple[float, float]]):
         if fig_size is None:
@@ -228,9 +94,6 @@ class PlotGenerator:
 
 
 class GraphPlotGenerator(PlotGenerator):
-
-    def _get_start_time(self) -> datetime.datetime:
-        return self.metadata["start_timestamp"]
 
     @staticmethod
     def _set_x_ticks(x_unit: str):
@@ -654,7 +517,153 @@ class EnteringProcessedTotalPlotGenerator(GraphPlotGenerator):
 
 
 class EnteringProcessedPerTimePlotGenerator(PlotGenerator):
-    pass
+
+    def __init__(
+        self,
+        test_identifier: str,
+        intervals_in_sec: Optional[list[int]] = None,
+    ):
+        plot_name = "entering_processed_per_time"
+        super().__init__(plot_name=plot_name, test_identifier=test_identifier)
+
+        self.intervals_in_sec = intervals_in_sec
+
+        self.default_fig_size = (8.35, 4.8)
+
+    def plot(
+        self,
+        fig_size: tuple[float, float] = None,
+        bar_width: float = 0.7,
+        x_major_locator: int = 1,
+        y_major_locator: int = 2500,
+    ):
+        """Creates a bar chart showing entering and processed log lines per minute.
+        Processed data is displayed as negative bars for mirror effect.
+
+        Args:
+            bar_width (float): Width of the bars, 0.7 by default
+            x_major_locator (int): Major tick interval for x-axis, 1 by default
+            y_major_locator (int): Major tick interval for y-axis, 2500 by default
+        """
+        self._set_up_initial_figure(fig_size)
+        start_time = self._get_start_time()
+
+        modules_to_csv_paths = ReadWriteUtils.get_modules_to_csv_filepaths(
+            self.plot_name, self.test_identifier
+        )
+
+        for name, file in modules_to_csv_paths.items():
+            df = pd.read_csv(file)
+
+            if df.empty:
+                continue  # skip empty datafiles
+
+            time_col = self._get_time_column_name(df, file)
+
+            df[time_col] = pd.to_datetime(df[time_col])
+            df = df.sort_values(by=time_col)
+
+            df["minutes_since_start"] = (
+                df[time_col] - start_time.replace(tzinfo=None)
+            ).dt.total_seconds() / 60
+
+            count_col, is_cumulative = self._get_count_column_name(df, file)
+
+            # if data is cumulative, we need to convert to per-minute counts
+            if is_cumulative:
+                # group by minute buckets if not already aggregated
+                if time_col != "time_bucket":
+                    df["time_bucket"] = df[time_col].dt.floor("min")
+                    grouped = df.groupby("time_bucket")[count_col].last().reset_index()
+                    grouped["minutes_since_start"] = (
+                        grouped["time_bucket"] - start_time.replace(tzinfo=None)
+                    ).dt.total_seconds() / 60
+                else:
+                    grouped = df.copy()
+                    grouped["time_bucket"] = grouped[time_col]
+
+                # calculate per-minute count from cumulative values
+                grouped["count"] = grouped[count_col].diff()
+                grouped.loc[grouped.index[0], "count"] = grouped[count_col].iloc[0]
+
+                # filter out negative time values
+                grouped = grouped[grouped["minutes_since_start"] >= 0]
+
+                count_data = grouped["count"]
+                time_data = grouped["minutes_since_start"]
+            else:
+                # filter out negative time values
+                df = df[df["minutes_since_start"] >= 0]
+                count_data = df[count_col]
+                time_data = df["minutes_since_start"]
+
+            if "Entering" in name:
+                self.__plot_core(name, time_data, count_data, bar_width)
+            else:  # "Processed" (shown as negative)
+                self.__plot_core(name, time_data, -count_data, bar_width)
+
+        plt.gca().xaxis.set_major_locator(ticker.MultipleLocator(x_major_locator))
+        plt.gca().yaxis.set_major_locator(ticker.MultipleLocator(y_major_locator))
+
+        self._set_labels()
+
+        plt.legend()
+        self._activate_grid()
+
+        self.save_to_file()
+
+    def __plot_core(
+        self,
+        name: str,
+        time_data: pd.DataFrame,
+        count_data: pd.DataFrame,
+        bar_width: float,
+    ):
+        plt.bar(
+            time_data,
+            count_data,
+            width=bar_width,
+            align="edge",
+            label=name,
+        )
+
+    @staticmethod
+    def _get_x_label():
+        return "Minutes since start"
+
+    @staticmethod
+    def _get_y_label():
+        return "Log lines per minute"
+
+    def _set_labels(self):
+        plt.xlabel(self._get_x_label(), labelpad=10)
+        plt.ylabel(self._get_y_label())
+
+    @staticmethod
+    def _activate_grid():
+        plt.grid(axis="y", linestyle="--")
+
+    @staticmethod
+    def _get_time_column_name(df: pd.DataFrame, filename: str) -> str:
+        if "time_bucket" in df.columns:
+            return "time_bucket"
+        elif "timestamp_in" in df.columns:
+            return "timestamp_in"
+        elif "timestamp" in df.columns:
+            return "timestamp"
+        else:
+            raise ValueError(f"No recognized time column in {filename}")
+
+    @staticmethod
+    def _get_count_column_name(df: pd.DataFrame, filename: str) -> [str, bool]:
+        if "count" in df.columns:
+            return "count", False  # count_col, is_cumulative
+        elif "total_count" in df.columns:
+            return "total_count", False
+        elif "cumulative_count" in df.columns:
+            return "cumulative_count", True
+        else:
+            raise ValueError(f"No recognized count column in {filename}")
 
 
 class LatenciesBoxplotGenerator(PlotGenerator):
