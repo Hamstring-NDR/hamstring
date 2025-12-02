@@ -1,7 +1,14 @@
 numpy
 xgboost
 scikit-learn~=1.5.2
-scipy
+scipy~=1.12.0
 torch
 pyarrow
 polars
+click
+optuna
+matplotlib
+te2rules
+seaborn
+lightgbm
+imblearn

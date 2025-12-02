@@ -28,8 +28,6 @@
     <a href="https://heidgaf.readthedocs.io/en/latest/"><strong>Explore the docs »</strong></a>
     <br />
     <br />
-    <a href="https://mybinder.org/v2/gh/stefanDeveloper/heiDGAF-tutorials/HEAD?labpath=demo_notebook.ipynb">View Demo</a>
-    ·
     <a href="https://github.com/stefanDeveloper/heiDGAF/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
     ·
     <a href="https://github.com/stefanDeveloper/heiDGAF/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
@@ -37,7 +35,7 @@
 </div>
 
 > [!CAUTION]
-> The project is under active development right now. Everything might change, break, or move around quickly.
+> This project has been moved to https://github.com/Hamstring-NDR/hamstring. Future development, issues, and releases will be maintained there.
 
 <table>
 <tr>
@@ -58,87 +56,227 @@
 
 ## About the Project
 
-![Pipeline overview](https://raw.githubusercontent.com/stefanDeveloper/heiDGAF/main/docs/media/pipeline_overview.png?raw=true)
+![Pipeline overview](https://raw.githubusercontent.com/stefanDeveloper/heiDGAF/main/docs/media/heidgaf_overview_detailed.drawio.png?raw=true)
 
 ## Getting Started
 
-If you want to use heiDGAF, just use the provided Docker compose to quickly bootstrap your environment:
+#### Run **heiDGAF** using Docker Compose:
 
+```sh
+HOST_IP=127.0.0.1 docker compose -f docker/docker-compose.yml up
 ```
-docker compose -f docker/docker-compose.yml up
-```
+<p align="center">
+  <img src="https://raw.githubusercontent.com/stefanDeveloper/heiDGAF/main/assets/terminal_example.gif?raw=true" alt="Terminal example"/>
+</p>
 
-![Terminal example](https://raw.githubusercontent.com/stefanDeveloper/heiDGAF/main/assets/terminal_example.gif?raw=true)
-
-### Developing
-
-> [!IMPORTANT]
-> More information will be added soon! Go and watch the repository for updates.
-
-Install all Python requirements:
-
+#### Or run the modules locally on your machine:
 ```sh
 python -m venv .venv
 source .venv/bin/activate
 
 sh install_requirements.sh
 ```
-
 Alternatively, you can use `pip install` and enter all needed requirements individually with `-r requirements.*.txt`.
 
 Now, you can start each stage, e.g. the inspector:
 
 ```sh
-python src/inspector/main.py
+python src/inspector/inspector.py
 ```
 
-### Train your own models
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-> [!IMPORTANT]
-> More information will be added soon! Go and watch the repository for updates.
 
-Currently, we enable two trained models, namely XGBoost and RandomForest.
+## Usage
 
-```sh
-python -m venv .venv
-source .venv/bin/activate
+### Configuration
 
-pip install -r requirements/requirements.train.txt
+To configure **heiDGAF** according to your needs, use the provided `config.yaml`.
+
+The most relevant settings are related to your specific log line format, the model you want to use, and
+possibly infrastructure.
+
+The section `pipeline.log_collection.collector.logline_format` has to be adjusted to reflect your specific input log
+line format. Using our adjustable and flexible log line configuration, you can rename, reorder and fully configure each
+field of a valid log line. Freely define timestamps, RegEx patterns, lists, and IP addresses. For example, your
+configuration might look as follows:
+
+```yml
+- [ "timestamp", Timestamp, "%Y-%m-%dT%H:%M:%S.%fZ" ]
+- [ "status_code", ListItem, [ "NOERROR", "NXDOMAIN" ], [ "NXDOMAIN" ] ]
+- [ "client_ip", IpAddress ]
+- [ "dns_server_ip", IpAddress ]
+- [ "domain_name", RegEx, '^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$' ]
+- [ "record_type", ListItem, [ "A", "AAAA" ] ]
+- [ "response_ip", IpAddress ]
+- [ "size", RegEx, '^\d+b$' ]
 ```
 
-For training our models, we rely on the following data sets:
+The options `pipeline.data_inspection` and `pipeline.data_analysis` are relevant for configuring the model. The section
+`environment` can be fine-tuned to prevent naming collisions for Kafka topics and adjust addressing in your environment.
+
+For more in-depth information on your options, have a look at our
+[official documentation](https://heidgaf.readthedocs.io/en/latest/usage.html), where we provide tables explaining all
+values in detail.
+
+### Monitoring
+To monitor the system and observe its real-time behavior, multiple Grafana dashboards have been set up.
+
+Have a look at the following pictures showing examples of how these dashboards might look at runtime.
+
+<details>
+  <summary><strong>Overview</strong> dashboard</summary>
+
+  Contains the most relevant information on the system's runtime behavior, its efficiency and its effectivity.
+
+  <p align="center">
+    <a href="./assets/readme_assets/overview.png">
+      <img src="./assets/readme_assets/overview.png" alt="Overview Dashboard" width="90%"/>
+    </a>
+  </p>
+
+</details>
+
+<details>
+  <summary><strong>Latencies</strong> dashboard</summary>
+
+  Presents any information on latencies, including comparisons between the modules and more detailed,
+  stand-alone metrics.
+
+  <p align="center">
+    <a href="./assets/readme_assets/latencies.jpeg">
+      <img src="./assets/readme_assets/latencies.jpeg" alt="Latencies Dashboard" width="90%"/>
+    </a>
+  </p>
+
+</details>
+
+<details>
+  <summary><strong>Log Volumes</strong> dashboard</summary>
+
+  Presents any information on the fill levels of each module, i.e. the number of entries that are currently in the
+  module for processing. Includes comparisons between the modules, more detailed, stand-alone metrics, as well as
+  total numbers of logs entering the pipeline or being marked as fully processed.
+
+  <p align="center">
+    <a href="./assets/readme_assets/log_volumes.jpeg">
+      <img src="./assets/readme_assets/log_volumes.jpeg" alt="Log Volumes Dashboard" width="90%"/>
+    </a>
+  </p>
+
+</details>
+
+<details>
+  <summary><strong>Alerts</strong> dashboard</summary>
+
+  Presents details on the number of logs detected as malicious including IP addresses responsible for those alerts.
+
+  <p align="center">
+    <a href="./assets/readme_assets/alerts.png">
+      <img src="./assets/readme_assets/alerts.png" alt="Alerts Dashboard" width="90%"/>
+    </a>
+  </p>
+
+</details>
+
+<details>
+  <summary><strong>Dataset</strong> dashboard</summary>
+
+  This dashboard is only active for the **_datatest_** mode. Users who want to test their own models can use this mode
+  for inspecting confusion matrices on testing data.
+
+  > This feature is in a very early development stage.
+
+  <p align="center">
+    <a href="./assets/readme_assets/datatests.png">
+      <img src="./assets/readme_assets/datatests.png" alt="Dataset Dashboard" width="80%"/>
+    </a>
+  </p>
+
+</details>
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+## Models and Training
+
+To train and test our and possibly your own models, we currently rely on the following datasets:
 
 - [CICBellDNS2021](https://www.unb.ca/cic/datasets/dns-2021.html)
 - [DGTA Benchmark](https://data.mendeley.com/datasets/2wzf9bz7xr/1)
 - [DNS Tunneling Queries for Binary Classification](https://data.mendeley.com/datasets/mzn9hvdcxg/1)
 - [UMUDGA - University of Murcia Domain Generation Algorithm Dataset](https://data.mendeley.com/datasets/y8ph45msv8/1)
-- [Real-CyberSecurity-Datasets](https://github.com/gfek/Real-CyberSecurity-Datasets/)
+- [DGArchive](https://dgarchive.caad.fkie.fraunhofer.de/)
 
-However, we compute all feature separately and only rely on the `domain` and `class`.
-Currently, we are only interested in binary classification, thus, the `class` is either `benign` or `malicious`.
+We compute all features separately and only rely on the `domain` and `class` for binary classification.
+
+### Inserting Data for Testing
+
+For testing purposes, we provide multiple scripts in the `scripts` directory. Use `real_logs.dev.py` to send data from
+the datasets into the pipeline. After downloading the dataset and storing it under `<project-root>/data`, run
+```sh
+python scripts/real_logs.dev.py
+```
+to start continuously inserting dataset traffic.
+
+### Training Your Own Models
+
+> [!IMPORTANT]
+> This is only a brief wrap-up of a custom training process.
+> We highly encourage you to have a look at the [documentation](https://heidgaf.readthedocs.io/en/latest/training.html)
+> for a full description and explanation of the configuration parameters.
+
+We feature two trained models:
+1. XGBoost (`src/train/model.py#XGBoostModel`) and
+2. RandomForest (`src/train/model.py#RandomForestModel`).
+
+After installing the requirements, use `src/train/train.py`:
+
+```sh
+> python -m venv .venv
+> source .venv/bin/activate
+
+> pip install -r requirements/requirements.train.txt
+
+> python src/train/train.py
+Usage: train.py [OPTIONS] COMMAND [ARGS]...
+
+Options:
+  -h, --help  Show this message and exit.
+
+Commands:
+  explain
+  test
+  train
+```
+
+Setting up the [dataset directories](#insert-test-data) (and adding the code for your model class if applicable) lets you start
+the training process by running the following commands:
+
+#### Model Training
+
+```sh
+> python src/train/train.py train  --dataset <dataset_type> --dataset_path <path/to/your/datasets> --model <model_name>
+```
+The results will be saved per default to `./results`, if not configured otherwise.
+
+#### Model Tests
+
+```sh
+> python src/train/train.py test  --dataset <dataset_type> --dataset_path <path/to/your/datasets> --model <model_name> --model_path <path_to_model_version>
+```
+
+#### Model Explain
+
+```sh
+> python src/train/train.py explain  --dataset <dataset_type> --dataset_path <path/to/your/datasets> --model <model_name> --model_path <path_to_model_version>
+```
+This will create a `rules.txt` file containing the innards of the model, explaining the rules it created.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-### Data
-
-> [!IMPORTANT]
-> We support custom schemes.
-
-```yml
-loglines:
-  fields:
-    - [ "timestamp", RegEx, '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$' ]
-    - [ "status_code", ListItem, [ "NOERROR", "NXDOMAIN" ], [ "NXDOMAIN" ] ]
-    - [ "client_ip", IpAddress ]
-    - [ "dns_server_ip", IpAddress ]
-    - [ "domain_name", RegEx, '^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$' ]
-    - [ "record_type", ListItem, [ "A", "AAAA" ] ]
-    - [ "response_ip", IpAddress ]
-    - [ "size", RegEx, '^\d+b$' ]
-```
 
 <!-- CONTRIBUTING -->
-
 ## Contributing
 
 Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any

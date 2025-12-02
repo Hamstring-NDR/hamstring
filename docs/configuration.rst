@@ -1,3 +1,103 @@
+Logline format configuration
+............................
+
+Configure the format and validation rules for DNS server loglines through flexible field definitions that
+support timestamps, IP addresses, regular expressions, and list-based validation.
+
+Configuration Overview
+^^^^^^^^^^^^^^^^^^^^^^
+
+Users can define the format and fields of their DNS server loglines through the
+``pipeline.log_collection.collector.logline_format`` parameter. This configuration allows complete customization
+of field types, validation rules, and filtering criteria for incoming log data.
+
+For example, a logline might look like this:
+
+.. code-block:: console
+
+   2025-04-04T14:45:32.458123Z NXDOMAIN 192.168.3.152 10.10.0.3 test.com AAAA 192.168.15.34 196b
+
+Field Definition Structure
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Each list entry of the parameter defines one field of the input logline, and the order of the entries corresponds to the
+order of the values in each logline. Each list entry itself consists of a list with
+two to four entries depending on the field type. For example, a field definition might look like this:
+
+.. code-block:: console
+
+   [ "status_code", ListItem, [ "NOERROR", "NXDOMAIN" ], [ "NXDOMAIN" ] ]
+
+Field Names and Requirements
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The first entry of each field definition always corresponds to the name of the field. Certain field names are required
+for proper pipeline operation, while others are forbidden as they are reserved for internal use.
+
+.. list-table:: Required and forbidden field names
+   :header-rows: 1
+   :widths: 15 50
+
+   * - Category
+     - Field Names
+   * - **Required**
+     - ``timestamp``, ``status_code``, ``client_ip``, ``record_type``, ``domain_name``
+   * - **Forbidden**
+     - ``logline_id``, ``batch_id``
+
+**Required fields** must be present in the configuration as they are essential for pipeline processing.
+**Forbidden fields** are reserved for internal communication and cannot be used as custom field names.
+
+Field Types and Validation
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The second entry specifies the type of the field. Depending on the type defined, the method for defining
+validation parameters varies. The third and fourth entries change depending on the type.
+
+There are four field types available:
+
+.. list-table:: Field types
+   :header-rows: 1
+   :widths: 20 25 20 35
+
+   * - Field type
+     - Format of 3rd entry
+     - Format of 4th entry
+     - Description
+   * - ``Timestamp``
+     - Timestamp format string
+     - *(not used)*
+     - Validates timestamp fields using Python's strptime format. Automatically converts to ISO format for internal processing.
+       Example: ``"%Y-%m-%dT%H:%M:%S.%fZ"``
+   * - ``IpAddress``
+     - *(not used)*
+     - *(not used)*
+     - Validates IPv4 and IPv6 addresses. No additional parameters required.
+   * - ``RegEx`` (Regular Expression)
+     - RegEx pattern as string
+     - *(not used)*
+     - Validates field content against a regular expression pattern. If the pattern matches, the field is valid.
+   * - ``ListItem``
+     - List of allowed values
+     - List of relevant values *(optional)*
+     - Validates field values against an allowed list. Optionally defines relevant values for filtering in later pipeline stages.
+       All relevant values must also be in the allowed list. If not specified, all allowed values are deemed relevant.
+
+Configuration Examples
+^^^^^^^^^^^^^^^^^^^^^^
+
+Here are examples for each field type:
+
+.. code-block:: yaml
+
+   logline_format:
+     - [ "timestamp", Timestamp, "%Y-%m-%dT%H:%M:%S.%fZ" ]
+     - [ "status_code", ListItem, [ "NOERROR", "NXDOMAIN" ], [ "NXDOMAIN" ] ]
+     - [ "client_ip", IpAddress ]
+     - [ "domain_name", RegEx, '^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)' ]
+     - [ "record_type", ListItem, [ "A", "AAAA" ] ]
+
+
 Logging Configuration
 .....................
 
@@ -33,17 +133,11 @@ functionality of the modules.
    * - Parameter
      - Default Value
      - Description
-   * - input_kafka_topic
-     - ``"LogServer"``
-     - Kafka topic for incoming log lines.
    * - input_file
      - ``"/opt/file.txt"``
-     - File for appending new log lines continuously.
+     - Path of the input file, to which data is appended during usage.
 
-       Keep this setting unchanged if using Docker; modify the ``MOUNT_PATH`` in ``docker/.env`` instead.
-   * - max_number_of_connections
-     - ``1000``
-     - Maximum number of simultaneous connections for sending and receiving.
+       Keep this setting unchanged when using Docker; modify the ``MOUNT_PATH`` in ``docker/.env`` instead.
 
 ``pipeline.log_collection``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -55,7 +149,8 @@ functionality of the modules.
    * - Parameter
      - Description
    * - logline_format
-     - Defines the expected format for incoming log lines. See the TODO section for more details.
+     - Defines the expected format for incoming log lines. See the :ref:`logline-format-configuration`
+       section for more details.
 
 .. list-table:: ``batch_handler`` Parameters
    :header-rows: 1
@@ -65,14 +160,18 @@ functionality of the modules.
      - Default Value
      - Description
    * - batch_size
-     - ``1000``
-     - TODO
+     - ``10000``
+     - Number of entries in a Batch, at which it is sent due to reaching the maximum fill state.
    * - batch_timeout
-     - ``20.0``
-     - TODO
-   * - subnet.subnet_bits
+     - ``30.0``
+     - Time after which a Batch is sent. Mainly relevant for Batches that only contain a small number of entries, and
+       do not reach the size limit for a longer time period.
+   * - subnet_id.ipv4_prefix_length
      - ``24``
-     - The number of bits to trim from the client's IPv4 address for use as ``subnet_id``.
+     - The number of bits to trim from the client's IPv4 address for use as `Subnet ID`.
+   * - subnet_id.ipv6_prefix_length
+     - ``64``
+     - The number of bits to trim from the client's IPv6 address for use as `Subnet ID`.
 
 ``pipeline.data_inspection``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -85,41 +184,41 @@ functionality of the modules.
      - Default Value
      - Description
    * - mode
-     - ``univariate``
-     - TODO
+     - ``univariate`` (options: ``multivariate``, ``ensemble``)
+     - Mode of operation for the data inspector.
    * - ensemble.model
      - ``WeightEnsemble``
-     - TODO
+     -  Model to use when inspector mode is ``ensemble``.
    * - ensemble.module
      - ``streamad.process``
-     - TODO
+     - Python module for the ensemble model.
    * - ensemble.model_args
      -
-     - TODO
+     - Additional Arguments for the ensemble model.
    * - models.model
      - ``ZScoreDetector``
-     - TODO
+     - Model to use for data inspection
    * - models.module
      - ``streamad.model``
-     - TODO
+     - Base python module for inspection models
    * - models.model_args
      -
-     - TODO
+     - Additional arguments for the model
    * - models.model_args.is_global
      - ``false``
-     - TODO
+     -
    * - anomaly_threshold
      - ``0.01``
-     - TODO
+     - Threshold for classifying an observation as an anomaly.
    * - score_threshold
      - ``0.5``
-     - TODO
+     - Threshold for the anomaly score.
    * - time_type
      - ``ms``
-     - TODO
+     - Unit of time used in time range calculations.
    * - time_range
      - ``20``
-     - TODO
+     - Time window for data inspection
 
 ``pipeline.data_analysis``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -132,17 +231,17 @@ functionality of the modules.
      - Default Value
      - Description
    * - model
-     - ``xg``
-     - TODO
+     - ``rf`` option: ``XGBoost``
+     - Model to use for the detector
    * - checksum
-     -
-     - TODO
+     - Not given here
+     - Checksum for the model file to ensure integrity
    * - base_url
      - https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/
-     - TODO
+     - Base URL for downloading the model if not present locally
    * - threshold
      - ``0.5``
-     - TODO
+     - Threshold for the detector's classification.
 
 Environment Configuration
 .........................
@@ -156,18 +255,12 @@ The following parameters control the infrastructure of the software.
    * - Parameter
      - Default Value
      - Description
-   * - timestamp_format
-     - ``"%Y-%m-%dT%H:%M:%S.%fZ"``
-     - TODO
    * - kafka_brokers
-     - TODO
-     - TODO
-   * - logserver.hostname
-     - ``172.27.0.8``
-     - The hostname or IP address that the :class:`LogServer` will use to start and bind to the network interface.
-   * - logserver.port_in
-     - ``9998``
-     - The port on which the :class:`LogServer` will listen for incoming log lines.
-   * - logserver.port_out
-     - ``9999``
-     - The port on which the :class:`LogServer` is available for collecting instances. Any instance connecting to this port will receive the latest log line stored on the server.
+     - ``hostname: kafka1, port: 8097``, ``hostname: kafka2, port: 8098``, ``hostname: kafka3, port: 8099``
+     - Hostnames and ports of the Kafka brokers, given as list.
+   * - kafka_topics
+     - Not given here
+     - Kafka topic names given as strings. These topics are used for the data transfer between the modules.
+   * - monitoring.clickhouse_server.hostname
+     - ``clickhouse-server``
+     - Hostname of the ClickHouse server. Used by Grafana.

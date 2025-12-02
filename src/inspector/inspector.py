@@ -66,15 +66,26 @@ VALID_MULTIVARIATE_MODELS = [
 
 VALID_ENSEMBLE_MODELS = ["WeightEnsemble", "VoteEnsemble"]
 
+STATIC_ZEROS_UNIVARIATE = np.zeros((100, 1))
+STATIC_ZEROS_MULTIVARIATE = np.zeros((100, 2))
+
 
 @unique
 class EnsembleModels(str, Enum):
+    """Available ensemble models for combining multiple anomaly detectors"""
+
     WEIGHT = "WeightEnsemble"
     VOTE = "VoteEnsemble"
 
 
 class Inspector:
-    """Finds anomalies in a batch of requests and produces it to the ``Detector``."""
+    """Main component of the Data Inspection stage to detect anomalies in request batches
+
+    Analyzes batches of DNS requests using configurable streaming anomaly detection models.
+    Supports univariate, multivariate, and ensemble detection modes. Processes time series
+    features from DNS request patterns to identify suspicious network behavior and forwards
+    anomalous batches to the Detector for further analysis.
+    """
 
     def __init__(self) -> None:
         self.batch_id = None
@@ -110,7 +121,12 @@ class Inspector:
         )
 
     def get_and_fill_data(self) -> None:
-        """Consumes data from KafkaConsumeHandler and stores it for processing."""
+        """Consumes data from Kafka and stores it for processing.
+
+        Fetches batch data from the configured Kafka topic and stores it in internal data structures.
+        If the Inspector is already busy processing data, the consumption is skipped with a warning.
+        Logs batch information and updates database entries for monitoring purposes.
+        """
         if self.messages:
             logger.warning(
                 "Inspector is busy: Not consuming new messages. Wait for the Inspector to finish the "
@@ -158,8 +174,12 @@ class Inspector:
                 f"    ⤷  Contains data field of {len(self.messages)} message(s). Belongs to subnet_id {key}."
             )
 
-    def clear_data(self):
-        """Clears the data in the internal data structures."""
+    def clear_data(self) -> None:
+        """Clears all data from internal data structures.
+
+        Resets messages, anomalies, feature matrix, and timestamps to prepare
+        the Inspector for processing the next batch of data.
+        """
         self.messages = []
         self.anomalies = []
         self.X = []
@@ -167,18 +187,22 @@ class Inspector:
         self.end_timestamp = None
         logger.debug("Cleared messages and timestamps. Inspector is now available.")
 
-    def _mean_packet_size(self, messages: list, begin_timestamp, end_timestamp):
-        """Returns mean of packet size of messages between two timestamps given a time step.
-        By default, 1 ms time step is applied. Time steps are adjustable by "time_type" and "time_range"
-        in config.yaml.
+    def _mean_packet_size(
+        self, messages: list, begin_timestamp, end_timestamp
+    ) -> np.ndarray:
+        """Calculates mean packet size per time step for time series analysis.
+
+        Computes the average packet size for each time step in a given time window.
+        Time steps are configurable via "time_type" and "time_range" in config.yaml.
+        Default time step is 1 ms.
 
         Args:
-            messages (list): Messages from KafkaConsumeHandler.
-            begin_timestamp (datetime): Begin timestamp of batch.
-            end_timestamp (datetime): End timestamp of batch.
+            messages (list): Messages from KafkaConsumeHandler containing size information.
+            begin_timestamp (datetime): Start timestamp of the batch time window.
+            end_timestamp (datetime): End timestamp of the batch time window.
 
         Returns:
-            numpy.ndarray: 2-D numpy.ndarray including all steps.
+            numpy.ndarray: 2-D numpy array with mean packet sizes for each time step.
         """
         logger.debug("Convert timestamps to numpy datetime64")
         timestamps = np.array(
@@ -246,18 +270,22 @@ class Inspector:
         logger.debug("Reshape into the required shape (n, 1)")
         return mean_sizes.reshape(-1, 1)
 
-    def _count_errors(self, messages: list, begin_timestamp, end_timestamp):
-        """Counts occurrences of messages between two timestamps given a time step.
-        By default, 1 ms time step is applied. Time steps are adjustable by "time_type" and "time_range"
-        in config.yaml.
+    def _count_errors(
+        self, messages: list, begin_timestamp, end_timestamp
+    ) -> np.ndarray:
+        """Counts message occurrences per time step for time series analysis.
+
+        Counts the number of messages occurring in each time step within a given time window.
+        Time steps are configurable via "time_type" and "time_range" in config.yaml.
+        Default time step is 1 ms.
 
         Args:
-            messages (list): Messages from KafkaConsumeHandler.
-            begin_timestamp (datetime): Begin timestamp of batch.
-            end_timestamp (datetime): End timestamp of batch.
+            messages (list): Messages from KafkaConsumeHandler containing timestamp information.
+            begin_timestamp (datetime): Start timestamp of the batch time window.
+            end_timestamp (datetime): End timestamp of the batch time window.
 
         Returns:
-            numpy.ndarray: 2-D numpy.ndarray including all steps.
+            numpy.ndarray: 2-D numpy array with message counts for each time step.
         """
         logger.debug("Convert timestamps to numpy datetime64")
         timestamps = np.array(
@@ -298,11 +326,22 @@ class Inspector:
             unique_times, _, unique_counts = np.unique(
                 timestamps, return_index=True, return_counts=True
             )
-            time_indices = (
-                ((unique_times - min_date) // TIME_RANGE)
-                .astype(f"timedelta64[{TIME_TYPE}]")
-                .astype(int)
-            )
+
+            # Compute indices
+            deltas = unique_times - min_date
+            time_indices = (deltas / np.timedelta64(TIME_RANGE, TIME_TYPE)).astype(int)
+
+            # Filter out-of-range indices
+            valid_mask = (time_indices >= 0) & (time_indices < counts.size)
+            if not np.all(valid_mask):
+                invalid_count = np.count_nonzero(~valid_mask)
+                logger.warning(
+                    f"{invalid_count} timestamps outside expected time range — ignored."
+                )
+                time_indices = time_indices[valid_mask]
+                unique_counts = unique_counts[valid_mask]
+
+            # Fill counts
             counts[time_indices] = unique_counts
         else:
             logger.warning("Empty messages to inspect.")
@@ -310,39 +349,42 @@ class Inspector:
         logger.debug("Reshape into the required shape (n, 1)")
         return counts.reshape(-1, 1)
 
-    def inspect(self):
-        """Runs anomaly detection on given StreamAD Model on either univariate, multivariate data, or as an ensemble."""
-        if MODELS is None or len(MODELS) == 0:
+    def inspect(self) -> None:
+        """Runs anomaly detection using configured StreamAD models.
+
+        Executes anomaly detection based on the configured mode (univariate, multivariate, or ensemble).
+        Validates model configuration and delegates to the appropriate inspection method.
+
+        Raises:
+            NotImplementedError: If no models are configured or mode is unsupported.
+        """
+        if MODELS == None or len(MODELS) == 0:
             logger.warning("No model ist set!")
             raise NotImplementedError(f"No model is set!")
+        if len(MODELS) > 1:
+            logger.warning(
+                f"Model List longer than 1. Only the first one is taken: {MODELS[0]['model']}!"
+            )
+        self._get_models(MODELS)
         match MODE:
             case "univariate":
-                if len(MODELS) > 1:
-                    logger.warning(
-                        f"Model List longer than 1. Only the first one is taken: {MODELS[0]['model']}!"
-                    )
-                self._inspect_univariate(MODELS[0])
+                self._inspect_univariate()
             case "multivariate":
-                if len(MODELS) > 1:
-                    logger.warning(
-                        f"Model List longer than 1. Only the first one is taken: {MODELS[0]['model']}!"
-                    )
-                self._inspect_multivariate(MODELS[0])
+                self._inspect_multivariate()
             case "ensemble":
-                self._inspect_ensemble(MODELS)
+                self._get_ensemble()
+                self._inspect_ensemble()
             case _:
                 logger.warning(f"Mode {MODE} is not supported!")
                 raise NotImplementedError(f"Mode {MODE} is not supported!")
 
-    def _inspect_multivariate(self, model: str):
-        logger.debug(f"Load Model: {model['model']} from {model['module']}.")
-        if not model["model"] in VALID_MULTIVARIATE_MODELS:
-            logger.error(f"Model {model} is not a valid univariate model.")
-            raise NotImplementedError(f"Model {model} is not a valid univariate model.")
+    def _inspect_multivariate(self) -> None:
+        """Performs multivariate anomaly detection using StreamAD model.
 
-        module = importlib.import_module(model["module"])
-        module_model = getattr(module, model["model"])
-        self.model = module_model(**model["model_args"])
+        Combines mean packet size and message count time series to create a multivariate
+        feature matrix for anomaly detection. Computes anomaly scores for each time step
+        using the configured multivariate StreamAD model.
+        """
 
         logger.debug("Inspecting data...")
 
@@ -355,77 +397,57 @@ class Inspector:
 
         self.X = np.concatenate((X_1, X_2), axis=1)
 
+        # TODO Append zeros to avoid issues when model is reused.
+        # self.X = np.vstack((STATIC_ZEROS_MULTIVARIATE, X))
+
         ds = CustomDS(self.X, self.X)
         stream = StreamGenerator(ds.data)
 
         for x in stream.iter_item():
-            score = self.model.fit_score(x)
+            score = self.models[0].fit_score(x)
+            # noqa
             if score is not None:
                 self.anomalies.append(score)
             else:
                 self.anomalies.append(0)
 
-    def _inspect_ensemble(self, models: str):
-        logger.debug(f"Load Model: {ENSEMBLE['model']} from {ENSEMBLE['module']}.")
-        if not ENSEMBLE["model"] in VALID_ENSEMBLE_MODELS:
-            logger.error(f"Model {ENSEMBLE} is not a valid univariate model.")
-            raise NotImplementedError(
-                f"Model {ENSEMBLE} is not a valid univariate model."
-            )
+    def _inspect_ensemble(self) -> None:
+        """Performs ensemble anomaly detection using multiple StreamAD models.
 
-        module = importlib.import_module(ENSEMBLE["module"])
-        module_model = getattr(module, ENSEMBLE["model"])
-        ensemble = module_model(**ENSEMBLE["model_args"])
-
+        Uses message count time series and combines scores from multiple StreamAD models
+        through ensemble methods (Weight or Vote). Computes final ensemble scores
+        for each time step in the data.
+        """
         self.X = self._count_errors(
             self.messages, self.begin_timestamp, self.end_timestamp
         )
 
+        # TODO Append zeros to avoid issues when model is reused.
+        # self.X = np.vstack((STATIC_ZEROS_UNIVARIATE, X))
+
         ds = CustomDS(self.X, self.X)
         stream = StreamGenerator(ds.data)
-
-        self.model = []
-        for model in models:
-            logger.debug(f"Load Model: {model['model']} from {model['module']}.")
-            if not model["model"] in VALID_UNIVARIATE_MODELS:
-                logger.error(f"Model {models} is not a valid univariate model.")
-                raise NotImplementedError(
-                    f"Model {models} is not a valid univariate model."
-                )
-
-            module = importlib.import_module(model["module"])
-            module_model = getattr(module, model["model"])
-            self.model.append(module_model(**model["model_args"]))
 
         for x in stream.iter_item():
             scores = []
             # Fit all models in ensemble
-            for models in self.model:
-                scores.append(models.fit_score(x))
+            for model in self.models:
+                scores.append(model.fit_score(x))
             # TODO Calibrators are missing
-            score = ensemble.ensemble(scores)
+            score = self.ensemble.ensemble(scores)
+            # noqa
             if score is not None:
                 self.anomalies.append(score)
             else:
                 self.anomalies.append(0)
 
-    def _inspect_univariate(self, model: str):
-        """Runs anomaly detection on given StreamAD Model on univariate data.
-        Errors are count in the time window and fit model to retrieve scores.
+    def _inspect_univariate(self) -> None:
+        """Performs univariate anomaly detection using StreamAD model.
 
-        Args:
-            model (BaseDetector): StreamAD model.
-            model_args (dict): Arguments passed to the StreamAD model.
+        Uses message count time series as a single feature for anomaly detection.
+        Computes anomaly scores for each time step using the configured
+        univariate StreamAD model.
         """
-
-        logger.debug(f"Load Model: {model['model']} from {model['module']}.")
-        if not model["model"] in VALID_UNIVARIATE_MODELS:
-            logger.error(f"Model {model} is not a valid univariate model.")
-            raise NotImplementedError(f"Model {model} is not a valid univariate model.")
-
-        module = importlib.import_module(model["module"])
-        module_model = getattr(module, model["model"])
-        self.model = module_model(**model["model_args"])
 
         logger.debug("Inspecting data...")
 
@@ -433,17 +455,93 @@ class Inspector:
             self.messages, self.begin_timestamp, self.end_timestamp
         )
 
+        # TODO Append zeros to avoid issues when model is reused.
+        # self.X = np.vstack((STATIC_ZEROS_UNIVARIATE, X))
+
         ds = CustomDS(self.X, self.X)
         stream = StreamGenerator(ds.data)
 
         for x in stream.iter_item():
-            score = self.model.fit_score(x)
+            score = self.models[0].fit_score(x)
+            # noqa
             if score is not None:
                 self.anomalies.append(score)
             else:
                 self.anomalies.append(0)
 
-    def send_data(self):
+    def _get_models(self, models: list) -> None:
+        """Loads and initializes StreamAD detection models.
+
+        Dynamically imports and instantiates the configured StreamAD models based on the
+        detection mode (univariate, multivariate, or ensemble). Validates model compatibility
+        with the selected mode and initializes models with their configuration parameters.
+
+        Args:
+            models (list): List of model configurations containing module and model information.
+
+        Raises:
+            NotImplementedError: If a model is not compatible with the selected mode.
+        """
+        if hasattr(self, "models") and self.models != None and self.models != []:
+            logger.info("All models have been successfully loaded!")
+            return
+
+        self.models = []
+        for model in models:
+            if MODE == "univariate" or MODE == "ensemble":
+                logger.debug(f"Load Model: {model['model']} from {model['module']}.")
+                if not model["model"] in VALID_UNIVARIATE_MODELS:
+                    logger.error(
+                        f"Model {models} is not a valid univariate or ensemble model."
+                    )
+                    raise NotImplementedError(
+                        f"Model {models} is not a valid univariate or ensemble model."
+                    )
+            if MODE == "multivariate":
+                logger.debug(f"Load Model: {model['model']} from {model['module']}.")
+                if not model["model"] in VALID_MULTIVARIATE_MODELS:
+                    logger.error(f"Model {model} is not a valid multivariate model.")
+                    raise NotImplementedError(
+                        f"Model {model} is not a valid multivariate model."
+                    )
+
+            module = importlib.import_module(model["module"])
+            module_model = getattr(module, model["model"])
+            self.models.append(module_model(**model["model_args"]))
+
+    def _get_ensemble(self) -> None:
+        """Loads and initializes ensemble model for combining multiple detectors.
+
+        Dynamically imports and instantiates the configured ensemble model (Weight or Vote)
+        that combines scores from multiple StreamAD models. Validates that the ensemble
+        model is supported and initializes it with configuration parameters.
+
+        Raises:
+            NotImplementedError: If the ensemble model is not supported.
+        """
+        logger.debug(f"Load Model: {ENSEMBLE['model']} from {ENSEMBLE['module']}.")
+        if not ENSEMBLE["model"] in VALID_ENSEMBLE_MODELS:
+            logger.error(f"Model {ENSEMBLE} is not a valid ensemble model.")
+            raise NotImplementedError(
+                f"Model {ENSEMBLE} is not a valid ensemble model."
+            )
+
+        if hasattr(self, "ensemble") and self.ensemble != None:
+            logger.info("Ensemble have been successfully loaded!")
+            return
+
+        module = importlib.import_module(ENSEMBLE["module"])
+        module_model = getattr(module, ENSEMBLE["model"])
+        self.ensemble = module_model(**ENSEMBLE["model_args"])
+
+    def send_data(self) -> None:
+        """Forwards anomalous data to the Detector for further analysis.
+
+        Evaluates anomaly scores against the configured thresholds. If the proportion of
+        anomalous time steps exceeds the threshold, groups messages by client IP and
+        forwards each group as a suspicious batch to the Detector via Kafka. Otherwise,
+        logs the batch as filtered out and updates monitoring databases.
+        """
         total_anomalies = np.count_nonzero(
             np.greater_equal(np.array(self.anomalies), SCORE_THRESHOLD)
         )
@@ -534,16 +632,19 @@ class Inspector:
         )
 
 
-def main(one_iteration: bool = False):
-    """
-    Creates the :class:`Inspector` instance. Starts a loop that continuously fetches data. Actual functionality
-    follows.
+def main(one_iteration: bool = False) -> None:
+    """Creates and runs the Inspector instance in a continuous processing loop.
+
+    Initializes the Inspector and starts the main processing loop that continuously
+    fetches batches from Kafka, performs anomaly detection, and forwards suspicious
+    batches to the Detector. Handles various exceptions gracefully and ensures
+    proper cleanup of data structures.
 
     Args:
-        one_iteration (bool): For testing purposes: stops loop after one iteration
+        one_iteration (bool): For testing purposes - stops loop after one iteration.
 
     Raises:
-        KeyboardInterrupt: Execution interrupted by user. Closes down the :class:`LogCollector` instance.
+        KeyboardInterrupt: Execution interrupted by user.
     """
     logger.info("Starting Inspector...")
     inspector = Inspector()

@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.abspath(".."))
 # -- Project information
 
 project = "heiDGAF"
-copyright = "2024, Stefan Machmeier and Manuel Fuchs"
+copyright = "2025, Stefan Machmeier and Manuel Fuchs"
 author = "Stefan Machmeier and Manuel Fuchs"
 
 # exec(open("../src/version.py").read())
@@ -41,7 +41,6 @@ extensions = [
     "sphinx.ext.ifconfig",
     "sphinx.ext.viewcode",
     "sphinx.ext.autosummary",
-    "sphinx.ext.autosectionlabel",
     "sphinxcontrib.bibtex",
     "sphinx.ext.mathjax",
 ]

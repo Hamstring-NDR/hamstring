@@ -15,14 +15,20 @@ CONFIG_FILEPATH = os.path.join(os.path.dirname(__file__), "../../config.yaml")
 
 
 def setup_config():
-    """
-    Loads the configuration data from the configuration file and returns it as the corresponding Python object.
+    """Load and return the application configuration from the YAML configuration file.
+
+    Reads the configuration file from the predefined CONFIG_FILEPATH and parses
+    it as a YAML document. This function provides centralized configuration
+    loading for the entire application.
 
     Returns:
-         Configuration data as corresponding Python object
+        dict: Configuration data as a Python dictionary containing all
+              application settings and parameters.
 
     Raises:
-        FileNotFoundError: Configuration file could not be opened
+        FileNotFoundError: If the configuration file does not exist at the
+                           expected path.
+        yaml.YAMLError: If the configuration file contains invalid YAML syntax.
     """
     try:
         logger.debug(f"Opening configuration file at {CONFIG_FILEPATH}...")

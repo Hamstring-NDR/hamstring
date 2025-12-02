@@ -1,9 +1,9 @@
-import sys
 import os
-import math
+import sys
 from string import ascii_lowercase as alc
 from typing import List
 
+import math
 import polars as pl
 
 sys.path.append(os.getcwd())
@@ -13,24 +13,32 @@ logger = get_logger("train.feature")
 
 
 class Processor:
-    """Processor for data set. Extracts features from data space."""
+    """Extracts statistical and linguistic features from domain name datasets.
 
-    def __init__(self, features_to_drop: List):
-        """Init.
+    Computes comprehensive feature sets including domain label statistics, character
+    frequencies, entropy measures, and domain structure analysis for machine learning
+    model training and DGA detection tasks.
+    """
 
+    def __init__(self, features_to_drop: List) -> None:
+        """
         Args:
-            feature_to_drop (list): List of feature to drop
+            features_to_drop (List): List of column names to exclude from final features.
         """
         self.features_to_drop = features_to_drop
 
     def transform(self, x: pl.DataFrame) -> pl.DataFrame:
-        """Transform our dataset with new features.
+        """Extracts comprehensive feature set from domain name dataset.
+
+        Computes domain label statistics, character frequencies for all letters,
+        character type ratios, and entropy measures for different domain levels.
+        Handles missing values and removes specified columns from final output.
 
         Args:
-            x (pl.DataFrame): pl.DataFrame with our features.
+            x (pl.DataFrame): Input dataset with domain structure columns.
 
         Returns:
-            pl.DataFrame: Preprocessed dataframe.
+            pl.DataFrame: Feature-engineered dataset ready for ML model training.
         """
         logger.debug("Start data transformation")
         x = x.with_columns(
@@ -106,89 +114,6 @@ class Processor:
                 ]
             )
 
-        logger.debug("Get frequency standard deviation, median, variance, and mean.")
-        x = x.with_columns(
-            [
-                (
-                    pl.concat_list([f"freq_{i}" for i in alc])
-                    .list.eval(pl.element().std())
-                    .list.get(0)
-                ).alias(f"freq_std"),
-                (
-                    pl.concat_list([f"freq_{i}" for i in alc])
-                    .list.eval(pl.element().var())
-                    .list.get(0)
-                ).alias(f"freq_var"),
-                (
-                    pl.concat_list([f"freq_{i}" for i in alc])
-                    .list.eval(pl.element().median())
-                    .list.get(0)
-                ).alias(f"freq_median"),
-                (
-                    pl.concat_list([f"freq_{i}" for i in alc])
-                    .list.eval(pl.element().mean())
-                    .list.get(0)
-                ).alias(f"freq_mean"),
-            ]
-        )
-
-        logger.debug(
-            "Get standard deviation, median, variance, and mean for full, alpha, special, and numeric count."
-        )
-        for level in ["thirdleveldomain", "secondleveldomain", "fqdn"]:
-            x = x.with_columns(
-                [
-                    (
-                        pl.concat_list(
-                            [
-                                f"{level}_full_count",
-                                f"{level}_alpha_count",
-                                f"{level}_numeric_count",
-                                f"{level}_special_count",
-                            ]
-                        )
-                        .list.eval(pl.element().std())
-                        .list.get(0)
-                    ).alias(f"{level}_std"),
-                    (
-                        pl.concat_list(
-                            [
-                                f"{level}_full_count",
-                                f"{level}_alpha_count",
-                                f"{level}_numeric_count",
-                                f"{level}_special_count",
-                            ]
-                        )
-                        .list.eval(pl.element().var())
-                        .list.get(0)
-                    ).alias(f"{level}_var"),
-                    (
-                        pl.concat_list(
-                            [
-                                f"{level}_full_count",
-                                f"{level}_alpha_count",
-                                f"{level}_numeric_count",
-                                f"{level}_special_count",
-                            ]
-                        )
-                        .list.eval(pl.element().median())
-                        .list.get(0)
-                    ).alias(f"{level}_median"),
-                    (
-                        pl.concat_list(
-                            [
-                                f"{level}_full_count",
-                                f"{level}_alpha_count",
-                                f"{level}_numeric_count",
-                                f"{level}_special_count",
-                            ]
-                        )
-                        .list.eval(pl.element().mean())
-                        .list.get(0)
-                    ).alias(f"{level}_mean"),
-                ]
-            )
-
         logger.debug("Start entropy calculation")
         for ent in ["fqdn", "thirdleveldomain", "secondleveldomain"]:
             x = x.with_columns(
@@ -209,7 +134,6 @@ class Processor:
 
             x = x.with_columns(
                 [
-                    # - sum([ p * math.log(p) / math.log(2.0) for p in prob ])
                     (
                         pl.col("prob")
                         .list.eval(-pl.element() * pl.element().log() / t)
@@ -227,5 +151,7 @@ class Processor:
         x = x.drop(self.features_to_drop)
 
         logger.debug("Finished data transformation")
+
+        logger.info("Finished data transformation")
 
         return x
