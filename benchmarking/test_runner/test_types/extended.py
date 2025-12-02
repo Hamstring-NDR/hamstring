@@ -116,7 +116,7 @@ class IntervalBasedTest(BaseTest):
 
             time.sleep(1.0 / messages_per_second)
 
-        logger.info(f"Finish interval with {messages_per_second} msg/s")
+        logger.debug(f"Finish interval with {messages_per_second} msg/s")
         return current_index
 
     def __get_total_duration(self) -> timedelta:

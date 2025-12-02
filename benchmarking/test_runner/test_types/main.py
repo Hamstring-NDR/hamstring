@@ -5,6 +5,9 @@ sys.path.append(os.getcwd())
 from benchmarking.test_runner.plotting.metadata_configuration import (
     MetadataConfiguration,
     RampUpMetadata,
+    MaximumThroughputMetadata,
+    LongTermMetadata,
+    BurstMetadata,
 )
 from benchmarking.test_runner.test_types.extended import (
     SingleIntervalTest,
@@ -44,8 +47,7 @@ class BurstTest(IntervalBasedTest):
         )
 
     def _BaseTest__get_metadata_configuration(self) -> MetadataConfiguration:
-        # TODO: Implement proper metadata configuration for BurstTest
-        return MetadataConfiguration()
+        return BurstMetadata()
 
 
 class LongTermTest(SingleIntervalTest):
@@ -67,8 +69,7 @@ class LongTermTest(SingleIntervalTest):
         )
 
     def _BaseTest__get_metadata_configuration(self) -> MetadataConfiguration:
-        # TODO: Implement proper metadata configuration for LongTermTest
-        return MetadataConfiguration()
+        return LongTermMetadata()
 
 
 class MaximumThroughputTest(SingleIntervalTest):
@@ -91,8 +92,7 @@ class MaximumThroughputTest(SingleIntervalTest):
         )
 
     def _BaseTest__get_metadata_configuration(self) -> MetadataConfiguration:
-        # TODO: Implement proper metadata configuration for MaximumThroughputTest
-        return MetadataConfiguration()
+        return MaximumThroughputMetadata()
 
 
 class RampUpTest(IntervalBasedTest):
@@ -117,8 +117,4 @@ class RampUpTest(IntervalBasedTest):
         )
 
     def _BaseTest__get_metadata_configuration(self) -> MetadataConfiguration:
-        return RampUpMetadata(
-            # total_ingoing_loglines=None,
-            start_time=self.metadata["start_timestamp"],
-            end_time=self.metadata["end_timestamp"],
-        )
+        return RampUpMetadata()

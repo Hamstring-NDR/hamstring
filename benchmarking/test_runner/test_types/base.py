@@ -20,8 +20,14 @@ from benchmarking.test_runner.plotting.pdf_overview_generator import (
 from benchmarking.test_runner.plotting.metadata_configuration import (
     MetadataConfiguration,
 )
+from benchmarking.test_runner.plotting.plot_generator import (
+    LatencyComparisonPlotGenerator,
+    EnteringProcessedTotalPlotGenerator,
+    FillLevelsComparisonPlotGenerator,
+    LatenciesBoxplotGenerator,
+    EnteringProcessedPerTimePlotGenerator,
+)
 from src.base.kafka_handler import SimpleKafkaProduceHandler
-from benchmarking.test_runner.plotting.plot_generator import PlotGenerator
 from src.base.utils import setup_config, TimeUtils
 from src.train.dataset import Dataset, DatasetLoader
 from src.base.log_config import get_logger
@@ -115,18 +121,18 @@ class BaseTest:
         self.execute()
         self.__check_if_all_data_is_processed()
 
-        test_directory_identifier = str(
+        test_identifier = str(
             datetime.now().strftime("%Y%m%d_%H%M%S")
             + "_"
             + self.metadata["test_name"].lower().replace(" ", "_")
         )
         self.test_run_directory = Path(
-            f"{BASE_DIR}/benchmark_results/{test_directory_identifier}"
+            f"{BASE_DIR}/benchmark_results/{test_identifier}"
         )
 
-        self.__extract_all_data_from_clickhouse(test_directory_identifier)
+        self.__extract_all_data_from_clickhouse(test_identifier)
         logger.info(
-            f"{self.metadata['test_name']}: Database entries extracted under {test_directory_identifier}"
+            f"{self.metadata['test_name']}: Database entries extracted under {test_identifier}"
         )
 
         self.__cleanup_clickhouse_database()
@@ -135,8 +141,8 @@ class BaseTest:
         )
 
         self._write_metadata_to_file()
-        self._generate_plots()
-        self._generate_report(test_directory_identifier)
+        self._generate_plots(test_identifier)
+        self._generate_report(test_identifier)
 
     @abstractmethod
     def _execute_core(self):
@@ -144,22 +150,45 @@ class BaseTest:
         To be implemented by inheriting classes."""
         raise NotImplementedError
 
-    def _generate_plots(self):
+    def _generate_plots(self, test_identifier: str):
         """Generates all available plots from the obtained data."""
-        self.plot_generator = PlotGenerator()
+        intervals_in_sec = self.metadata["parameters"].get(
+            "interval_lengths_in_seconds"
+        )
+        data_rates_per_interval = self.metadata["parameters"].get(
+            "messages_per_second_in_intervals"
+        )
 
-        self.__plot_latency_comparison()
+        LatencyComparisonPlotGenerator(
+            test_identifier=test_identifier,
+            intervals_in_sec=intervals_in_sec,
+            data_rates_per_interval=data_rates_per_interval,
+        ).plot()
 
-        self.plot_generator = None
+        LatenciesBoxplotGenerator(
+            test_identifier=test_identifier,
+        ).plot()
 
-    def _generate_report(
-        self, test_directory_identifier: str, output_filename: str = "report"
-    ):
+        FillLevelsComparisonPlotGenerator(
+            test_identifier=test_identifier,
+            intervals_in_sec=intervals_in_sec,
+        ).plot()
+
+        EnteringProcessedTotalPlotGenerator(
+            test_identifier=test_identifier,
+            intervals_in_sec=intervals_in_sec,
+        ).plot()
+
+        EnteringProcessedPerTimePlotGenerator(
+            test_identifier=test_identifier,
+        ).plot()
+
+    def _generate_report(self, test_identifier: str, output_filename: str = "report"):
         """
         Generates the report from the generated result graphs.
 
         Args:
-            test_directory_identifier (str): Identifying name of the benchmark_results directory for this test. Usually
+            test_identifier (str): Identifying name of the benchmark_results directory for this test. Usually
                                              of the form "20250101_120000_ramp_up".
             output_filename (str): Filename for the output report file without .pdf suffix. Default: "report"
         """
@@ -179,7 +208,7 @@ class BaseTest:
 
         # add elements to report pdf
         generator.setup_first_page_layout(
-            test_identifier=test_directory_identifier,
+            test_identifier=test_identifier,
             benchmark_test_date=datetime.date(
                 self.metadata["end_timestamp"]
             ),  # TODO: Test
@@ -274,12 +303,6 @@ class BaseTest:
                     f"TRUNCATE TABLE {table};",
                 ]
             ).check_returncode()
-
-    @staticmethod
-    def __store_additional_metadata():
-        # Idea: Go through the files in sql_queries/metadata and use the filename as description and the result of
-        # the query as the value. Store both in the metadata.yml under a new section 'additional_values'.
-        pass
 
     @staticmethod
     def __check_if_all_data_is_processed(
@@ -385,37 +408,6 @@ class BaseTest:
             raise ValueError(
                 "Invalid file name. Allowed characters are letters, numbers, '.', '_', and '-'."
             )
-
-    def __plot_latency_comparison(self):
-        """Plots the latency comparison graph."""
-        # prepare directory paths
-        relative_data_path = self.test_run_directory / "data"
-        relative_output_graph_directory = self.test_run_directory / "graphs"
-
-        # create base output directory
-        os.makedirs(relative_output_graph_directory, exist_ok=True)
-
-        # prepare input file paths
-        module_to_filepath = (
-            MODULE_TO_CSV_FILENAME.copy()
-        )  # keep original dictionary unchanged
-        for module in MODULE_TO_CSV_FILENAME.keys():
-            filename = MODULE_TO_CSV_FILENAME[module]
-            module_to_filepath[module] = str(
-                relative_data_path / "latencies" / filename
-            )
-
-        # generate and save plots
-        self.plot_generator.plot_latency(
-            datafiles_to_names=module_to_filepath,
-            relative_output_directory_path=relative_output_graph_directory,
-            start_time=self.metadata["start_timestamp"],
-            median_smooth=True,
-            intervals_in_sec=self.metadata["parameters"]["interval_lengths_in_seconds"],
-            datarates_per_interval=self.metadata["parameters"][
-                "messages_per_second_in_intervals"
-            ],
-        )
 
 
 class BenchmarkDatasetGenerator:

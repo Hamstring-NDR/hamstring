@@ -7,8 +7,8 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt, ticker
 
+from benchmarking.utils import ReadWriteUtils
 from src.base.log_config import get_logger
-from utils import ReadWriteUtils
 
 logger = get_logger()
 
@@ -29,14 +29,11 @@ class PlotGenerator:
     def plot(self, *args, **kwargs):
         raise NotImplementedError
 
-    @abstractmethod
-    def __plot_core(self, *args, **kwargs):
-        raise NotImplementedError
-
     def save_to_file(self):
         output_filepath = ReadWriteUtils.get_plot_output_filepath(
             self.plot_name, self.test_identifier
         )
+        output_filepath.parent.mkdir(parents=True, exist_ok=True)
 
         plt.savefig(output_filepath, dpi=300, bbox_inches="tight")
         logger.info(f"File saved at {output_filepath}")

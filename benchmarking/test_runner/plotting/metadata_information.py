@@ -88,13 +88,16 @@ class NumberPerTimeMetadataInformation(SingleMetadataInformation):
 class RangeNumberPerTimeMetadataInformation(SingleMetadataInformation):
     """Includes a title and an informative value, indicating a range of numbers per time, e.g. loglines per second."""
 
-    def __init__(self, title: str, values: list[float], per: str):
+    def __init__(self, title: str, values: float | list[float], per: str):
         """
         Args:
             title: Descriptive title of the information.
             values: List of values per time, e.g. [27.4, 31.2] for 27.4/s - 31.2/s.
             per: Per time, must be "s", "min" or "h".
         """
+        if values is not list:
+            values = [values]
+
         min_value = min(values)
         max_value = max(values)
 
