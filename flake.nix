@@ -11,6 +11,55 @@
       let
         pkgs = nixpkgs.legacyPackages.${system};
         
+        # CityHash library (required by ClickHouse)
+        cityhash = pkgs.stdenv.mkDerivation {
+          pname = "cityhash";
+          version = "1.1.1";
+          
+          src = pkgs.fetchFromGitHub {
+            owner = "google";
+            repo = "cityhash";
+            rev = "8af9b8c2b889d80c22d6bc26ba0df1afb79a30db";  # v1.1.1
+            sha256 = "sha256-Ji6o9N8Nd6BrFO6jEhLjk+qlN8QNdTVZoM6j3Yqb2lg=";
+          };
+          
+          nativeBuildInputs = with pkgs; [ cmake ];
+          
+          # CityHash uses old-style build
+          configurePhase = ''
+            ./configure --prefix=$out --enable-sse4.2
+          '';
+          
+          preConfigure = ''
+            # Generate configure script if not present
+            [ -f configure ] || {
+              echo "Creating configure script..."
+              autoreconf -fvi || true
+            }
+          '';
+        };
+        
+        # ClickHouse C++ client library (built from source)
+        clickhouse-cpp = pkgs.stdenv.mkDerivation {
+          pname = "clickhouse-cpp";
+          version = "2.6.0";
+          
+          src = pkgs.fetchFromGitHub {
+            owner = "ClickHouse";
+            repo = "clickhouse-cpp";
+            rev = "v2.6.0";
+            sha256 = "sha256-7QPXm0ij/ImFILCGnv1bqfe6nbMt8XCgjofEi5XElNo=";
+          };
+          
+          nativeBuildInputs = with pkgs; [ cmake ];
+          buildInputs = with pkgs; [ openssl zlib lz4 abseil-cpp cityhash ];
+          
+          cmakeFlags = [
+            "-DBUILD_SHARED_LIBS=ON"
+            "-DWITH_OPENSSL=ON"
+          ];
+        };
+        
         # Common build inputs for all C++ modules
         commonBuildInputs = with pkgs; [
           cmake
@@ -24,7 +73,15 @@
           curl
           zlib
           cyrus_sasl
+          lz4
+          abseil-cpp
+          cityhash
           rdkafka
+          clickhouse-cpp
+          # Build tools for cityhash
+          autoconf
+          automake
+          libtool
         ];
 
         # Build a C++ module
@@ -47,9 +104,18 @@
             
             configurePhase = ''
               runHook preConfigure
+              
+              # Help CMake find clickhouse-cpp and dependencies
+              export CMAKE_PREFIX_PATH="${clickhouse-cpp}:$CMAKE_PREFIX_PATH"
+              export PKG_CONFIG_PATH="${clickhouse-cpp}/lib/pkgconfig:$PKG_CONFIG_PATH"
+              
               cmake -B build -S . \
                 -DCMAKE_BUILD_TYPE=Release \
-                -DBUILD_TESTING=OFF
+                -DBUILD_TESTING=OFF \
+                -DCLICKHOUSE_CPP_LIB="${clickhouse-cpp}/lib/libclickhouse-cpp-lib.dylib" \
+                -DCLICKHOUSE_INCLUDE_DIR="${clickhouse-cpp}/include" \
+                -DZSTD_LIB="${pkgs.zstd.out}/lib/libzstd.dylib" \
+                -DCITYHASH_LIB="${cityhash}/lib/libcityhash.dylib"
               runHook postConfigure
             '';
             
