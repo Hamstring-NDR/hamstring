@@ -118,7 +118,7 @@ class DetectorTraining:
             case "dgta":
                 self.dataset.append(self.dataset_loader.dgta_dataset)
             case "dgarchive":
-                self.dataset.append(self.dataset_loader.dgarchive_data)
+                self.dataset.append(self.dataset_loader.dgarchive_dataset)
             case _:
                 raise NotImplementedError(f"Dataset not implemented!")
         logger.info(f"Set up Pipeline.")

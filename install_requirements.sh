@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Check if pip is available
-if ! command -v pip &> /dev/null
+if ! command -v pip
 then
     echo "pip could not be found, please install Python and pip first."
     exit
