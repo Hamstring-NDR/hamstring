@@ -12,3 +12,5 @@ te2rules
 seaborn
 lightgbm
 imblearn
+pylcs
+Levenshtein
