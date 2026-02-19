@@ -295,7 +295,8 @@ def cast_heicloud(data_path: str, max_rows: int) -> pl.DataFrame:
 def cast_domainator(data_path: List[str], max_rows: int) -> pl.DataFrame:
     """Loads and processes Domainator dataset from multiple CSV files.
 
-    Reads Domainator datasets (benign, malicious)
+    Reads Domainator datasets (benign, malicious), appends a user source if not present, 
+    then processes the queries and combines the datasets into one for training
 
     Args:
         data_path (str): Data path to data set
