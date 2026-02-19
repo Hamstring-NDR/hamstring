@@ -42,6 +42,7 @@ class DatasetEnum(str, Enum):
     CIC = "cic"
     DGTA = "dgta"
     DGARCHIVE = "dgarchive"
+    DOMAINATOR = 'domainator'
 
 
 @unique
@@ -119,6 +120,8 @@ class DetectorTraining:
                 self.dataset.append(self.dataset_loader.dgta_dataset)
             case "dgarchive":
                 self.dataset.append(self.dataset_loader.dgarchive_dataset)
+            case "domainator":
+                self.dataset.append(self.dataset_loader.domainator_dataset)
             case _:
                 raise NotImplementedError(f"Dataset not implemented!")
         logger.info(f"Set up Pipeline.")
@@ -380,7 +383,7 @@ _ds_options = [
         "--dataset",
         "dataset",
         default="combine",
-        type=click.Choice(["combine", "dgarchive", "cic", "dgta"]),
+        type=click.Choice(["combine", "dgarchive", "cic", "dgta", "domainator"]),
         help="Data set to train model, choose between all available datasets, DGArchive, CIC and DGTA.",
     ),
     click.option(
