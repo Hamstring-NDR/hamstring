@@ -173,9 +173,6 @@ class Processor:
             pl.concat_str([pl.col('secondleveldomain'), pl.col('tld')], separator='.').alias('domain')
         )
 
-        logger.debug(x)
-        logger.debug(x.shape)
-
         for user in x['user'].unique():
             # logger.debug(x.filter(pl.col('user') == user))
             for domain in x.filter(pl.col('user') == user)['domain'].unique():
@@ -198,11 +195,11 @@ class Processor:
                             'query': domain,
                             'levenshtein': [],
                             'jaro': [],
+                            'rev_jaro': [],
                             'jaro_winkler': [],
+                            'rev_jaro_wink': [],
                             'lcs_seq': [],
                             'lcs_str': [],
-                            'rev_jaro': [],
-                            'rev_jaro_wink': [],
                         }
 
                         metrics['levenshtein'] = np.mean([Levenshtein.ratio(product[0], product[1]) for product in cartesian])
