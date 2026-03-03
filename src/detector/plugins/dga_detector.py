@@ -61,12 +61,7 @@ class DGADetector(DetectorBase):
         Returns:
             str: Fully qualified URL where the model can be downloaded.
         """
-        self.model_base_url = (
-            self.model_base_url[:-1]
-            if self.model_base_url[-1] == "/"
-            else self.model_base_url
-        )
-        return f"{self.model_base_url}/files/?p=%2F{self.model}%2F{self.checksum}%2Fscaler.pickle&dl=1"
+        return None
 
     def predict(self, message):
         """
