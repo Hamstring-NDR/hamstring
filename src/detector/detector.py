@@ -256,26 +256,26 @@ class DetectorBase(DetectorAbstractBase):
             requests.HTTPError: If there's an error downloading the model.
         """
         logger.info(f"Get model: {self.model} with checksum {self.checksum}")
-        if not os.path.isfile(self.model_path):
-            model_download_url = self.get_model_download_url()
-            logger.info(
-                f"downloading model {self.model} from {model_download_url} with checksum {self.checksum}"
-            )
-            response = requests.get(model_download_url)
-            response.raise_for_status()
-            with open(self.model_path, "wb") as f:
-                f.write(response.content)
-            # Handle optional scaler
-            scaler_download_url = self.get_scaler_download_url()
-            if scaler_download_url:
-                scaler_response = requests.get(scaler_download_url)
-                scaler_response.raise_for_status()
-                with open(self.scaler_path, "wb") as f:
-                    f.write(scaler_response.content)
-                with open(self.scaler_path, "rb") as input_file:
-                    scaler = pickle.load(input_file)
-            else:
-                scaler = None
+        # if not os.path.isfile(self.model_path):
+        model_download_url = self.get_model_download_url()
+        logger.info(
+            f"downloading model {self.model} from {model_download_url} with checksum {self.checksum}"
+        )
+        response = requests.get(model_download_url)
+        response.raise_for_status()
+        with open(self.model_path, "wb") as f:
+            f.write(response.content)
+        # Handle optional scaler
+        scaler_download_url = self.get_scaler_download_url()
+        if scaler_download_url:
+            scaler_response = requests.get(scaler_download_url)
+            scaler_response.raise_for_status()
+            with open(self.scaler_path, "wb") as f:
+                f.write(scaler_response.content)
+            with open(self.scaler_path, "rb") as input_file:
+                scaler = pickle.load(input_file)
+        else:
+            scaler = None
         # Check file sha256
         local_checksum = self._sha256sum(self.model_path)
 
