@@ -770,3 +770,10 @@ DGA Detector
 ...................
 The :class:`DGADetector` consumes anomalous batches of requests, preprocessed by the StreamAD library.
 It calculates a probability score for each request, to find if a DGA DNS entry was queried.
+
+Domainator Detector
+...................
+The :class:`DomainatorDetector` consumes anomalous batches of requests.
+It identifies potential data exfiltration and command & control on the subdomain level by analyzing characteristics of the subdomains.
+Messages are grouped by domain into fixed-size windows to allow for sequential anomaly detection. The detector leverages machine learning based on statistical and linguistic features from the domain name
+including label lengths, character frequencies, entropy measures, and counts of different character types across domain name levels.
