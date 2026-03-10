@@ -38,6 +38,8 @@ CONSUME_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"][
 PLUGIN_PATH = "src.detector.plugins"
 
 
+ALERT_FILE_LOCATION = config["logging"]["alerts"]["path"]
+
 class WrongChecksum(Exception):  # pragma: no cover
     """Raises when model checksum validation fails."""
 
@@ -352,7 +354,7 @@ class DetectorBase(DetectorAbstractBase):
             alert = {"overall_score": overall_score, "result": self.warnings}
 
             logger.info(f"Add alert: {alert}")
-            with open(os.path.join(tempfile.gettempdir(), "warnings.json"), "a+") as f:
+            with open(ALERT_FILE_LOCATION, "a+") as f:
                 json.dump(alert, f)
                 f.write("\n")
 
@@ -507,6 +509,11 @@ async def main():  # pragma: no cover
     3. Creates detector instances
     4. Starts all detectors concurrently
     """
+    
+    # ensure alert directory exists
+    alert_path = "/".join(ALERT_FILE_LOCATION.split("/")[:-1])
+    os.makedirs(alert_path, exist_ok=True)
+    
     tasks = []
     for detector_config in DETECTORS:
         consume_topic = f"{CONSUME_TOPIC_PREFIX}-{detector_config['name']}"

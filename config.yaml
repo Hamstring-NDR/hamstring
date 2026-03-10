@@ -14,11 +14,14 @@ logging:
       debug: false
     data_analysis.detector:
       debug: false
+  alerts:
+    path: "/opt/logs/alerts.txt"
 
 pipeline:
   log_storage:
     logserver:
       input_file: "/opt/file.txt"
+  
 
 
 
