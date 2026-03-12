@@ -5,7 +5,7 @@ sys.path.append(os.getcwd())
 from src.alerter.alerter import AlerterBase
 from src.base.log_config import get_logger
 
-module_name = "pipeline.alerter.hello_world_alerter"
+module_name = "src.alerter.hello_world_alerter"
 logger = get_logger(module_name)
 
 

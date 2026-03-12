@@ -7,7 +7,6 @@ import importlib
 
 sys.path.append(os.getcwd())
 from confluent_kafka.admin import AdminClient, NewTopic
-from src.alerter.plugins.generic_alerter import GenericAlerter
 from src.base.utils import setup_config, ensure_directory
 from src.base.kafka_handler import (
     ExactlyOnceKafkaConsumeHandler,
@@ -193,7 +192,12 @@ async def main():
     # Setup Generic Alerter Task
     generic_topic = f"{CONSUME_TOPIC_PREFIX}-generic"
     logger.info("Initializing Generic Alerter")   
-    generic_alerter = GenericAlerter(
+    class_name = "GenericAlerter"
+    mod_name = f"{PLUGIN_PATH}.generic_alerter"
+    module = importlib.import_module(mod_name)
+    AlerterClass = getattr(module, class_name)
+            
+    generic_alerter = AlerterClass(
         alerter_config={"name": "generic"}, consume_topic=generic_topic
     )
     tasks.append(asyncio.create_task(generic_alerter.start()))
