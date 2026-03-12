@@ -228,3 +228,9 @@ def normalize_ipv6_address(
 
 def generate_collisions_resistant_uuid():
     return f"{uuid.uuid4()}-{uuid.uuid4()}"
+
+
+def ensure_directory(self, file_path):
+    directory = os.path.dirname(file_path)
+    if directory:
+        os.makedirs(directory, exist_ok=True)

@@ -25,7 +25,7 @@ class DomainatorDetector(DetectorBase):
     to make predictions about whether a query is likely malicious.
     """
 
-    def __init__(self, detector_config, consume_topic):
+    def __init__(self, detector_config, consume_topic, produce_topics):
         """
         Initialize the Domainator detector with configuration parameters.
 
@@ -39,7 +39,7 @@ class DomainatorDetector(DetectorBase):
         """
         self.model_base_url = detector_config["base_url"]
         self.message_queues = defaultdict(list)
-        super().__init__(detector_config, consume_topic)
+        super().__init__(detector_config, consume_topic, produce_topics)
 
     def get_model_download_url(self):
         """

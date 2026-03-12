@@ -227,6 +227,32 @@ services:
         condition: service_healthy
     profiles: ["prod"]
 
+  alerter-dev:
+    extends:
+      file: "docker-compose/dev/docker-compose.pipeline.yml"
+      service: alerter
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+    profiles: ["dev"]
+
+  alerter:
+    extends:
+      file: "docker-compose/prod/docker-compose.pipeline.yml"
+      service: alerter
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+    profiles: ["prod"]
+
 networks:
   hamstring:
     driver: bridge
