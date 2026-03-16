@@ -2,13 +2,11 @@ name: Docker Build and Publish CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "feature/publish-ghcrio"]
     # Publish semver tags as releases.
     tags: [ 'v*.*.*' ]
   pull_request:
     branches: [ "main" ]
-  workflow_dispatch:
-
 
 env:
   REGISTRY: ghcr.io
