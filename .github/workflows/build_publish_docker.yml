@@ -10,7 +10,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: hamstring-ndr/hamstring
 
 
 jobs:
@@ -56,29 +55,21 @@ jobs:
         uses: docker/metadata-action@v5.5.1
         with:
           images: |
-            ${{ env.REGISTRY }}/${{ github.repository }}
-            
+            ${{ env.REGISTRY }}/${{ github.repository }}-${{ matrix.container }}
+          tags: |
+            type=raw,value=latest
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
 
-      - name: Build and push Docker image (${{ steps.meta.outputs.tags }})
-        if: github.event_name != 'pull_request' && contains(github.ref, '/tags/v')
+      - name: Build and push Docker image
+        if: github.event_name != 'pull_request'
         id: build-and-push
         uses: docker/build-push-action@v3
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
-          tags: "${{ steps.meta.outputs.tags }}"
-          labels: ${{ steps.meta.outputs.labels }}
-          file: ./docker/dockerfiles/Dockerfile.${{ matrix.container }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build and push Docker image (latest)
-        id: build-and-push-latest
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ env.IMAGE_NAME }}-${{ matrix.container }}:latest
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           file: ./docker/dockerfiles/Dockerfile.${{ matrix.container }}
           cache-from: type=gha
