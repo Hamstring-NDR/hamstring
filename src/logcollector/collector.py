@@ -60,13 +60,13 @@ class LogCollector:
         """
         self.protocol = protocol
         self.consume_topic = consume_topic
+        self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(consume_topic)
         self.batch_configuration = utils.get_batch_configuration(collector_name)
         self.loglines = asyncio.Queue()
         self.batch_handler = BufferedBatchSender(
             produce_topics=produce_topics, collector_name=collector_name
         )
         self.logline_handler = LoglineHandler(validation_config)
-        self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(consume_topic)
 
         # databases
         self.failed_protocol_loglines = ClickHouseKafkaSender("failed_loglines")

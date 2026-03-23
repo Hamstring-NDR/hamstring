@@ -432,8 +432,8 @@ class BufferedBatchSender:
     def __init__(self, produce_topics, collector_name):
         self.topics = produce_topics
         self.batch_configuration = get_batch_configuration(collector_name)
-        self.batch = BufferedBatch(collector_name)
         self.timer = None
+        self.batch = BufferedBatch(collector_name)
 
         self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()
 
@@ -441,10 +441,16 @@ class BufferedBatchSender:
         self.logline_timestamps = ClickHouseKafkaSender("logline_timestamps")
 
     def __del__(self):
-        if self.timer:
-            self.timer.cancel()
+        timer = getattr(self, "timer", None)
+        if timer:
+            timer.cancel()
 
-        self._send_all_batches(reset_timer=False)
+        batch = getattr(self, "batch", None)
+        if batch:
+            try:
+                self._send_all_batches(reset_timer=False)
+            except Exception as e:
+                logger.debug(f"Skipping batch flush during cleanup: {e}")
 
     def add_message(self, key: str, message: str) -> None:
         """Adds a message to the batch and triggers sending if batch size limit is reached.
