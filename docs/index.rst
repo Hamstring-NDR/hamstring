@@ -1,7 +1,7 @@
-Welcome to heiDGAF's documentation!
+Welcome to HAMSTRING's documentation!
 ===================================
 
-**heiDGAF** is a machine learning-based DNS classifier for detecting Domain Generation Algorithms (DGAs), tunneling, and
+**HAMSTRING** is a machine learning-based DNS classifier for detecting Domain Generation Algorithms (DGAs), tunneling, and
 data exfiltration by malicious actors.
 
 Check out the :doc:`usage` section for further information on how to use the software, including how to

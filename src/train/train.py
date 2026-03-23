@@ -401,7 +401,7 @@ _ds_options = [
 
 @click.group(context_settings=CONTEXT_SETTINGS)
 def cli():
-    click.secho("Train heiDGAF CLI")
+    click.secho("Train HAMSTRING CLI")
 
 
 @cli.command()

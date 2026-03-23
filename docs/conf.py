@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.abspath(".."))
 
 # -- Project information
 
-project = "heiDGAF"
+project = "HAMSTRING"
 copyright = "2025, Stefan Machmeier and Manuel Fuchs"
 author = "Stefan Machmeier and Manuel Fuchs"
 
@@ -71,9 +71,9 @@ exclude_patterns = ['_build, "Thumbs.db', ".DS_Store"]
 html_theme = "sphinx_book_theme"
 html_theme_options = {
     "use_repository_button": True,
-    "repository_url": "https://github.com/stefanDeveloper/heiDGAF",
+    "repository_url": "https://github.com/stefanDeveloper/HAMSTRING",
 }
-html_logo = "../assets/heidgaf_logo_readthedocs.png"
+html_logo = "../assets/hamstring_logo_readthedocs.png"
 # -- Options for EPUB output
 epub_show_urls = "footnote"
 

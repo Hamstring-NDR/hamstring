@@ -1,17 +1,12 @@
 Logline format configuration
 ............................
 
-Configure the format and validation rules for DNS server loglines through flexible field definitions that
-support timestamps, IP addresses, regular expressions, and list-based validation.
+If a wants to add a new inspector or detector, it might be necessary to adapt the logline formats, if the preexisting ones do not contain the needed information.
+To do so, one can adapt or define logcollector formats in the main configuration file (``config.yaml``) under ``pipeline.log_collection.collectors.[collector_name].required_log_information``.
+Adding a new logcollector enables prefilters (and later on onspectors and detectors) to consume from a new Kafka topic.
 
-Configuration Overview
-^^^^^^^^^^^^^^^^^^^^^^
-
-Users can define the format and fields of their DNS server loglines through the
-``pipeline.log_collection.collector.logline_format`` parameter. This configuration allows complete customization
-of field types, validation rules, and filtering criteria for incoming log data.
-
-For example, a logline might look like this:
+Currently, we support timestamps, IP addresses, regular expressions, and list-based validation for data fields in a logline.
+For example, a logline for the DNS protocol might look like this:
 
 .. code-block:: console
 
@@ -38,11 +33,9 @@ for proper pipeline operation, while others are forbidden as they are reserved f
    :header-rows: 1
    :widths: 15 50
 
-   * - Category
-     - Field Names
-   * - **Required**
-     - ``timestamp``, ``status_code``, ``client_ip``, ``record_type``, ``domain_name``
-   * - **Forbidden**
+   * - Required
+     - ``ts``, ``src_ip``
+   * - Forbidden
      - ``logline_id``, ``batch_id``
 
 **Required fields** must be present in the configuration as they are essential for pipeline processing.
@@ -120,7 +113,7 @@ If a ``debug`` field is set to ``false``, only info-level logging is shown. By d
 Pipeline Configuration
 ......................
 
-The following parameters control the behavior of each stage of the heiDGAF pipeline, including the
+The following parameters control the behavior of each stage of the HAMSTRING pipeline, including the
 functionality of the modules.
 
 ``pipeline.log_storage``
@@ -142,15 +135,23 @@ functionality of the modules.
 ``pipeline.log_collection``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. list-table:: ``collector`` Parameters
+.. list-table:: ``collectors`` Parameters
    :header-rows: 1
    :widths: 30 70
 
    * - Parameter
      - Description
-   * - logline_format
-     - Defines the expected format for incoming log lines. See the :ref:`logline-format-configuration`
-       section for more details.
+   * - name
+     - A unique name amongst the ``collectors``configurations top identify the collector instance.
+   * - protocol_base
+     - The lowercase protocol name to ingest data from. Currently supported: ``dns`` and ``http``.
+   * - required_log_information
+     - Defines the expected format for incoming log lines. See the :ref:`Logline format configuration` section for more
+       details.
+
+Each log_collector has a BatchHandler instance. Default confgurations for all Batch handlers are defined in ``pipeline.log_collection.default_batch_handler_config``.
+You can override these values for each logcollector instance by adjusting the values inside the ``pipeline.log_collection.collectors.[collector_instance].batch_handler_config_override``.
+The following list shows the available configuration options.
 
 .. list-table:: ``batch_handler`` Parameters
    :header-rows: 1
@@ -173,52 +174,50 @@ functionality of the modules.
      - ``64``
      - The number of bits to trim from the client's IPv6 address for use as `Subnet ID`.
 
+
+
+
+``pipeline.log_filtering``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. list-table:: ``prefilter`` Parameters
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Parameter
+     - Description
+   * - name
+     - A unique name amongst the prefilter configurations top identify the prefitler instance.
+   * - relevance_method
+     - The name of the method used to to check if a given logline is relevant for further inspection.
+       This check can be skipped by choosing ``"no_relevance_check"``.
+       Avalable configurations are: ``"no_relevance_check"``, ``"check_dga_relevance"``
+   * - collector_name
+     - The name of the collector configuration the prefilter consumes data from. The same collector name can be referenced in multiple prefilter configurations.
+
 ``pipeline.data_inspection``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. list-table:: ``inspector`` Parameters
    :header-rows: 1
-   :widths: 30 20 50
-
+   :widths: 30 70
    * - Parameter
-     - Default Value
      - Description
-   * - mode
-     - ``univariate`` (options: ``multivariate``, ``ensemble``)
-     - Mode of operation for the data inspector.
-   * - ensemble.model
-     - ``WeightEnsemble``
-     -  Model to use when inspector mode is ``ensemble``.
-   * - ensemble.module
-     - ``streamad.process``
-     - Python module for the ensemble model.
-   * - ensemble.model_args
-     -
-     - Additional Arguments for the ensemble model.
-   * - models.model
-     - ``ZScoreDetector``
-     - Model to use for data inspection
-   * - models.module
-     - ``streamad.model``
-     - Base python module for inspection models
-   * - models.model_args
-     -
-     - Additional arguments for the model
-   * - models.model_args.is_global
-     - ``false``
-     -
-   * - anomaly_threshold
-     - ``0.01``
-     - Threshold for classifying an observation as an anomaly.
-   * - score_threshold
-     - ``0.5``
-     - Threshold for the anomaly score.
-   * - time_type
-     - ``ms``
-     - Unit of time used in time range calculations.
-   * - time_range
-     - ``20``
-     - Time window for data inspection
+   * - name
+     - A unique name amongst the inspector configurations top identify the inspector instance.
+   * - prefilter_name
+     - The name of the prefitler configuration the inspector consumes data from. The same prefilter name can be referenced in multiple inspector configurations.
+   * - inspector_module_name
+     - Name of the python file in ``"src/inspector/plugins/"`` the inspector should use.
+   * - inspector_class_name
+     - Name of the class inside the ``inspector_module`` to use.
+
+
+
+Inspectors can be added easily by implementing the base class for an inspector. More information is available at :ref:`inspection_stage`.
+Each inspector might be needing additional configurations. These are also documented at :ref:`inspection_stage`.
+
+To entirely skip the anomaly detection phase, you can set ``inspector_module_name: "no_inspector"`` and ``inspector_class_name: "NoInspector"``.
 
 ``pipeline.data_analysis``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -230,6 +229,18 @@ functionality of the modules.
    * - Parameter
      - Default Value
      - Description
+   * - name
+     -
+     - A unique name amongst the detector configurations top identify the detector instance.
+   * - inspector_name
+     -
+     - The name of the inspector configuration the detector consumes data from. The same inspector name can be referenced in multiple detector configurations.
+   * - detector_module_name
+     -
+     - Name of the python file in ``"src/detector/plugins/"`` the detector should use.
+   * - detector_class_name
+     -
+     - Name of the class inside the ``detector_module`` to use.
    * - model
      - ``rf`` option: ``XGBoost``
      - Model to use for the detector
@@ -242,6 +253,30 @@ functionality of the modules.
    * - threshold
      - ``0.5``
      - Threshold for the detector's classification.
+
+
+``pipeline.zeek``
+^^^^^^^^^^^^^^^^^
+
+To configure the Zeek sensors to ingest data, an entry in ther ``pipeline.zeek.sensors`` must be adapted or added.
+Each of the configured sensores is meant to run on a different machine or network interface to collect data.
+Each instance configured needs to be setup using the ``docker-compose.yaml``. The dictionary name needs to exactly correspond with the
+name of the instance configured there.
+Each sensore has the following configuration parameters:
+
+.. list-table:: ``zeek`` Parameters
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Parameter
+     - Description
+   * - static_analysis
+     - A bool to indicate whether or not a static analysis should be executed. If ``true``, the PCAPs from ``"data/test_pcaps"`` which are mounted to
+       each Zeek instance are analyzed. If set to ``false``, a network analysis is executed on the configured network interfaces.
+   * - protocols
+     - List of lowercase names of protocols the Zeek sensor should be monitoring and sending in the Kafka Queues. Currently supported: ``"dns"`` and ``http``.
+   * - interfaces
+     - List of network interface names for a network analysis to monitor. As the Zeek containers run in ``host`` mode, all network interfaces of the node are automatically mounted and ready to be scraped.
 
 Environment Configuration
 .........................
@@ -256,11 +291,12 @@ The following parameters control the infrastructure of the software.
      - Default Value
      - Description
    * - kafka_brokers
-     - ``hostname: kafka1, port: 8097``, ``hostname: kafka2, port: 8098``, ``hostname: kafka3, port: 8099``
-     - Hostnames and ports of the Kafka brokers, given as list.
-   * - kafka_topics
+     - ``hostname: kafka1, port: 8097, node_ip: 0.0.0.0``, ``hostname: kafka2, port: 8098, node_ip: 0.0.0.0``, ``hostname: kafka3, port: 8099, node_ip: 0.0.0.0``
+     - Hostnames and ports of the Kafka brokers, given as list. The node ip is crucial and needs to be set to the actual IP of the system where the Kafka broker will be running on.
+   * - kafka_topics_prefix
      - Not given here
-     - Kafka topic names given as strings. These topics are used for the data transfer between the modules.
+     - Kafka topic name prefixes given as strings. These prefix name are used to construct the actual topic names based on the instance name (e.g. a collector instance name) that produces for the given stage.
+       (e.g. a prefilter instance name is added as suffix to the prefilter_to_inspector prefix for the inspector to know where to consume.)
    * - monitoring.clickhouse_server.hostname
      - ``clickhouse-server``
      - Hostname of the ClickHouse server. Used by Grafana.

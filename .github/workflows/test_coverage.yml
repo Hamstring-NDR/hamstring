@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - dev
   pull_request:
     branches:
       - main
@@ -20,6 +21,8 @@ jobs:
     permissions:
       issues: write
       pull-requests: write
+      contents: read
+      packages: write
     env:
       BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
 
@@ -52,7 +55,7 @@ jobs:
         if: steps.pip-cache.outputs.cache-hit != 'true'
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r requirements/requirements.dev.txt -r requirements/requirements.detector.txt -r requirements/requirements.logcollector.txt -r requirements/requirements.prefilter.txt -r requirements/requirements.inspector.txt -r requirements/requirements.logserver.txt
+          python -m pip install -r requirements/requirements.zeek.txt -r requirements/requirements.dev.txt -r requirements/requirements.detector.txt -r requirements/requirements.logcollector.txt -r requirements/requirements.prefilter.txt -r requirements/requirements.inspector.txt -r requirements/requirements.logserver.txt
 
       - name: Test
         run: |
@@ -64,23 +67,6 @@ jobs:
         with:
           coverageFile: ./coverage.xml
           token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Coverage Badge
-        uses: tj-actions/coverage-badge-py@v2.0.3
-        with:
-          output: 'assets/coverage_${{ env.BRANCH_NAME }}.svg'
-
-      - name: Verify Changed files
-        uses: tj-actions/verify-changed-files@v20.0.1
-        id: verify-changed-files
-        with:
-          files: 'assets/coverage_${{ env.BRANCH_NAME }}.svg'
-
-      - name: Upload file
-        if: steps.verify-changed-files.outputs.files_changed == 'true'
-        run: |
-          pip install requests beautifulsoup4
-          python assets/upload_seafile.py -l ${{ secrets.SEAFILE_UPLOAD }} -f assets/coverage_${{ env.BRANCH_NAME }}.svg
 
       - name: Upload results to Codecov
         uses: codecov/codecov-action@v4

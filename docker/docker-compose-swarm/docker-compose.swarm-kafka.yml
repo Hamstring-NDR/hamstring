@@ -3,7 +3,7 @@ services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.9.3
     networks:
-      - heidgaf
+      - hamstring
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -18,14 +18,14 @@ services:
       retries: 3
     deploy:
       placement:
-        constraints: [node.hostname == heidgaf-1]
+        constraints: [node.hostname == hamstring-1]
       restart_policy:
         condition: on-failure
 
   kafka1:
     image: confluentinc/cp-kafka:7.9.3
     networks:
-      - heidgaf
+      - hamstring
     ports:
       - "8097:8097"
     environment:
@@ -51,14 +51,14 @@ services:
       retries: 5
     deploy:
       placement:
-        constraints: [node.hostname == heidgaf-1]
+        constraints: [node.hostname == hamstring-1]
       restart_policy:
         condition: on-failure
 
   kafka2:
     image: confluentinc/cp-kafka:7.9.3
     networks:
-      - heidgaf
+      - hamstring
     ports:
       - "8098:8098"
     environment:
@@ -84,14 +84,14 @@ services:
       retries: 5
     deploy:
       placement:
-        constraints: [node.hostname == heidgaf-1]
+        constraints: [node.hostname == hamstring-1]
       restart_policy:
         condition: on-failure
 
   kafka3:
     image: confluentinc/cp-kafka:7.9.3
     networks:
-      - heidgaf
+      - hamstring
     ports:
       - "8099:8099"
     environment:
@@ -117,12 +117,12 @@ services:
       retries: 5
     deploy:
       placement:
-        constraints: [node.hostname == heidgaf-1]
+        constraints: [node.hostname == hamstring-1]
       restart_policy:
         condition: on-failure
 
 networks:
-  heidgaf:
+  hamstring:
     external: true
 
 volumes:
