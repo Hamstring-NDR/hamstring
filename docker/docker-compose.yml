@@ -57,13 +57,26 @@ services:
       clickhouse-server:
         condition: service_healthy
   zeek1:
-    extends:
-      file: "docker-compose/base/docker-compose.zeek.yml"
-      service: zeek
+    image: ghcr.io/hamstring-ndr/hamstring-zeek:v1.0.0
     environment:
       - CONTAINER_NAME=zeek1
     volumes:
       - ../data/test_pcaps/:/opt/static_files
+      - ../../../config.yaml:/opt/config.yaml
+    cap_add:
+      - NET_ADMIN
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+      clickhouse-server:
+        condition: service_healthy
+      grafana:
+        condition: service_healthy
+    network_mode: host
 
   monitoring_agent-dev:
     extends:

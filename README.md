@@ -16,9 +16,7 @@
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
-  <a href="https://github.com/hamstring-ndr/hamstring">
-    <img src="" alt="Logo">
-  </a>
+    <img src="./assets/hamstring.svg" alt="Logo">
 
 <h3 align="center">HAMSTRING</h3>
 
@@ -56,7 +54,7 @@
 
 ## About the Project
 
-![Pipeline overview](https://raw.githubusercontent.com/hamstring-ndr/hamstring/main/docs/media/hamstring_overview_detailed.drawio.png?raw=true)
+![Pipeline overview](./assets/heidgaf_architecture.svg)
 
 ## Getting Started
 
