@@ -266,6 +266,17 @@ services:
         condition: service_healthy
     profiles: ["prod"]
 
+  zeek-1:
+    image: ghcr.io/hamstring-ndr/hamstring-zeek:1.0.0
+    cap_add:
+      - NET_ADMIN
+    network_mode: host
+    environment:
+      - CONTAINER_NAME=zeek-1
+    volumes:
+      - ./config.yaml:/opt/config.yaml
+      - ./data/test_pcaps/:/opt/static_files
+
 networks:
   hamstring:
     driver: bridge

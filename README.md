@@ -32,8 +32,6 @@
   </p>
 </div>
 
-> [!CAUTION]
-> This project has been moved to https://github.com/Hamstring-NDR/hamstring. Future development, issues, and releases will be maintained there.
 
 <table>
 <tr>
@@ -66,25 +64,9 @@ HOST_IP=127.0.0.1 docker compose -f docker/docker-compose.yml --profile prod up
   <img src="https://raw.githubusercontent.com/hamstring-ndr/hamstring/main/assets/terminal_example.gif?raw=true" alt="Terminal example"/>
 </p>
 
-#### Use the dev profile for testing out changes in docke containers:
+#### Use the dev profile for testing out changes in docker containers:
 ```sh
 HOST_IP=127.0.0.1 docker compose -f docker/docker-compose.yml --profile dev up
-```
-
-
-#### Or run the modules locally on your machine:
-```sh
-python -m venv .venv
-source .venv/bin/activate
-
-sh install_requirements.sh
-```
-Alternatively, you can use `pip install` and enter all needed requirements individually with `-r requirements.*.txt`.
-
-Now, you can start each stage, e.g. the inspector:
-
-```sh
-python src/inspector/inspector.py
 ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
@@ -123,6 +105,11 @@ The options `pipeline.data_inspection` and `pipeline.data_analysis` are relevant
 For more in-depth information on your options, have a look at our
 [official documentation](https://hamstring.readthedocs.io/en/latest/usage.html), where we provide tables explaining all
 values in detail.
+
+
+### Testing Your Own Data
+
+If you want to ingest data to the pipeline, you can do so via the zeek container. Either select the interface in the `config.yaml` zeek should be listening on and set `static_analysis: false` or provide PCAPs to Zeek by adding them in the `data/test_pcaps` directory, which is mounted per default for Zeek to ingest static data. 
 
 ### Monitoring
 To monitor the system and observe its real-time behavior, multiple Grafana dashboards have been set up.

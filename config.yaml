@@ -40,7 +40,6 @@ pipeline:
           - [ "dns_server_ip", IpAddress ]
           - [ "domain_name", RegEx, '^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$' ]
           - [ "record_type", ListItem, [ "A", "AAAA" ] ]
-          # - [ "response_ip", IpAddress ]
           - [ "size", RegEx, '^\d+$' ]
         batch_handler_config_override:
           batch_timeout: 30
@@ -53,7 +52,6 @@ pipeline:
           - [ "dns_server_ip", IpAddress ]
           - [ "domain_name", RegEx, '^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$' ]
           - [ "record_type", ListItem, [ "A", "AAAA" ] ]
-          # - [ "response_ip", IpAddress ]
           - [ "size", RegEx, '^\d+$' ]
 
   log_filtering:
@@ -81,8 +79,8 @@ pipeline:
           module: streamad.model
           model_args:
             is_global: false
-      anomaly_threshold: 0.0001
-      score_threshold: 0.005
+      anomaly_threshold: 0.01
+      score_threshold: 0.5
       time_type: ms
       time_range: 20
     - name: no_inspector
@@ -97,16 +95,16 @@ pipeline:
       model: rf
       checksum: 5db8bfb617e80361362c33b1d1afc6d762c28e9fa9275fb11514a3bdef76bb88
       base_url: https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/
-      threshold: 0.005
+      threshold: 0.5
       inspector_name: dga_inspector
-      produce_topics: "hello_world"
+      produce_topics: ""
     - name: "domainator"
       detector_module_name: "domainator_detector"
       detector_class_name: "DomainatorDetector"
       model: domainator
       checksum: 9d86d66b4976c9b325bed0934a9a9eb3a20960b08be9afe491454624cc0aaa6c
       base_url: https://heibox.uni-heidelberg.de/d/0d5cbcbe16cd46a58021/
-      threshold: 0.005
+      threshold: 0.5
       inspector_name: no_inspector
       produce_topics: ""
 
@@ -115,10 +113,6 @@ pipeline:
     log_file_path: "/opt/logs/alerts.txt"
     log_to_kafka: true
     external_kafka_topic: "hamstring_alerts"
-    plugins:
-      - name: "hello_world"
-        alerter_module_name: "hello_world_alerter"
-        alerter_class_name: "HelloWorldAlerter"
 
   monitoring:
     clickhouse_connector:
@@ -128,12 +122,12 @@ pipeline:
 
   zeek:
     sensors:
-      zeek1:
+      zeek-1:
         static_analysis: true
         protocols:
           - dns
         interfaces:
-          - enp2s0f0
+          - eth0
 
 environment:
   kafka_brokers:
@@ -151,7 +145,7 @@ environment:
       node_ip: 127.0.0.1
   kafka_topics_prefix:
     pipeline:
-      logserver_in: "pipeline-logserver_in"
+      logserver_in: "hamstring_input"
       logserver_to_collector: "pipeline-logserver_to_collector"
       batch_sender_to_prefilter: "pipeline-batch_sender_to_prefilter"
       prefilter_to_inspector: "pipeline-prefilter_to_inspector"
