@@ -9,8 +9,7 @@ on:
     branches: [ "main" ]
 
 env:
-  REGISTRY: docker.io
-  IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/hamstring
+  REGISTRY: ghcr.io
 
 
 jobs:
@@ -47,46 +46,40 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          username: ${{github.actor}}
+          password: ${{secrets.GITHUB_TOKEN}}
 
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5.5.1
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.container }}
+          images: |
+            ${{ env.REGISTRY }}/${{ github.repository }}-${{ matrix.container }}
+          tags: |
+            type=raw,value=latest
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
 
-      - name: Build and push Docker image (${{ steps.meta.outputs.tags }})
-        if: github.event_name != 'pull_request' && contains(github.ref, '/tags/v')
+      - name: Build and push Docker image
+        if: github.event_name != 'pull_request'
         id: build-and-push
         uses: docker/build-push-action@v3
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
-          tags: "${{ steps.meta.outputs.tags }}"
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           file: ./docker/dockerfiles/Dockerfile.${{ matrix.container }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build and push Docker image (latest)
-        id: build-and-push-latest
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ env.IMAGE_NAME }}-${{ matrix.container }}:latest
-          labels: ${{ steps.meta.outputs.labels }}
-          file: ./docker/dockerfiles/Dockerfile.${{ matrix.container }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Docker Hub Description
-        uses: peter-evans/dockerhub-description@v3
-        if: github.event_name != 'pull_request'
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-          repository: ${{ env.IMAGE_NAME }}-${{ matrix.container }}
-          short-description: ${{ github.event.repository.description }}
-          readme-filepath: ./README.md
+      # - name: Docker Hub Description
+      #   uses: peter-evans/dockerhub-description@v3
+      #   if: github.event_name != 'pull_request'
+      #   with:
+      #     username: ${{ secrets.DOCKER_USERNAME }}
+      #     password: ${{ secrets.DOCKER_PASSWORD }}
+      #     repository: ${{ env.IMAGE_NAME }}-${{ matrix.container }}
+      #     short-description: ${{ github.event.repository.description }}
+      #     readme-filepath: ./README.md
