@@ -194,22 +194,17 @@ Have a look at the following pictures showing examples of how these dashboards m
 
 To train and test our and possibly your own models, we currently rely on the following datasets:
 
-- [CICBellDNS2021](https://www.unb.ca/cic/datasets/dns-2021.html)
 - [DGTA Benchmark](https://data.mendeley.com/datasets/2wzf9bz7xr/1)
 - [DNS Tunneling Queries for Binary Classification](https://data.mendeley.com/datasets/mzn9hvdcxg/1)
 - [UMUDGA - University of Murcia Domain Generation Algorithm Dataset](https://data.mendeley.com/datasets/y8ph45msv8/1)
 - [DGArchive](https://dgarchive.caad.fkie.fraunhofer.de/)
+- [DNS Exfiltration](https://data.mendeley.com/datasets/c4n7fckkz3/3)
 
 We compute all features separately and only rely on the `domain` and `class` for binary classification.
 
 ### Inserting Data for Testing
 
-For testing purposes, we provide multiple scripts in the `scripts` directory. Use `real_logs.dev.py` to send data from
-the datasets into the pipeline. After downloading the dataset and storing it under `<project-root>/data`, run
-```sh
-python scripts/real_logs.dev.py
-```
-to start continuously inserting dataset traffic.
+For testing purposes, you can ingest PCAPs or tap on network interfaces using the zeek-based sensor in its `1.0.0` release. For more information on it, please refer to [the documentation](https://github.com/Hamstring-NDR/hamstring-zeek).
 
 ### Training Your Own Models
 
@@ -255,7 +250,7 @@ The results will be saved per default to `./results`, if not configured otherwis
 #### Model Tests
 
 ```sh
-> python src/train/train.py test  --dataset <dataset_type> --dataset_path <path/to/your/datasets> --model <model_name> --model_path <path_to_model_version>
+> python src/train/train.py test  --dataset <dataset_type> --dataset_path <path/to/your/datasets> --model <model_name> --model_output_path <path_to_model_version>
 ```
 
 #### Model Explain
