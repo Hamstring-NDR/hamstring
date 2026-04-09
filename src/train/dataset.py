@@ -12,7 +12,7 @@ from src.base.log_config import get_logger
 logger = get_logger("train.dataset")
 
 
-def preprocess(x: pl.DataFrame) -> pl.DataFrame:
+def preprocess(x: pl.DataFrame, keep_all: bool = False) -> pl.DataFrame:
     """Preprocesses DataFrame into structured dataset for feature extraction.
 
     Filters out empty queries, removes duplicates, splits domain names into labels,
@@ -27,7 +27,9 @@ def preprocess(x: pl.DataFrame) -> pl.DataFrame:
     """
     logger.debug("Start preprocessing data.")
     x = x.filter(pl.col("query").str.len_chars() > 0)
-    x = x.unique(subset="query")
+    if not keep_all:
+        x = x.unique(subset="query")
+
     x = x.with_columns(
         [
             (pl.col("query").str.split(".").alias("labels")),
@@ -134,39 +136,6 @@ def cast_bambenek(data_path: str, max_rows: int) -> pl.DataFrame:
 
     logger.info(f"Data loaded with shape {df.shape}")
     return df  # pl.concat([df_legit, df_malicious])
-
-
-def cast_cic(data_path: List[str], max_rows: int) -> pl.DataFrame:
-    """Loads and processes CIC DNS dataset from multiple CSV files.
-
-    Reads CIC DNS datasets (benign, malware, phishing, spam), assigns appropriate
-    class labels based on filename, and combines all datasets into a unified format.
-
-    Args:
-        data_path (List[str]): List of paths to CIC dataset CSV files.
-        max_rows (int): Maximum number of rows to process per file.
-
-    Returns:
-        pl.DataFrame: Combined CIC dataset with structured domain information.
-    """
-    dataframes = []
-    for data in data_path:
-        logger.info(f"Start casting data set {data}.")
-        y = data.split("_")[-1].split(".")[0]
-        df = pl.read_csv(
-            data, has_header=False, n_rows=max_rows if max_rows > 0 else None
-        )
-        if y == "benign":
-            df = df.with_columns([pl.lit("legit").alias("class")])
-        else:
-            df = df.with_columns([pl.lit(y).alias("class")])
-        df = df.rename({"column_1": "query"})
-        df = preprocess(df)
-
-        logger.info(f"Data loaded with shape {df.shape}")
-        dataframes.append(df)
-
-    return pl.concat(dataframes)
 
 
 def cast_dgarchive(data_path: str, max_rows: int) -> pl.DataFrame:
@@ -290,6 +259,38 @@ def cast_heicloud(data_path: str, max_rows: int) -> pl.DataFrame:
     return pl.concat(dataframes)
 
 
+def cast_domainator(data_path: List[str], max_rows: int) -> pl.DataFrame:
+    """Loads and processes Domainator dataset from multiple CSV files.
+
+    Reads Domainator datasets (benign, malicious), appends a user source if not present, 
+    then processes the queries and combines the datasets into one for training
+
+    Args:
+        data_path (str): Data path to data set
+        max_rows (int): Maximum rows.
+
+    Returns:
+        pl.DataFrame: Loaded pl.DataFrame.
+    """
+
+    dataframes = []
+    for path in data_path:
+        logger.info(f"Start casting data set {path}.")
+        df = pl.read_csv(
+            path,
+            separator=",",
+            has_header=True,
+            n_rows=max_rows if max_rows > 0 else None
+        )
+        if 'user' not in df.columns:
+            df.insert_column(0, pl.Series('user', ['testbed']*len(df)))
+        df = preprocess(df, keep_all=True)
+        logger.info(f"Data loaded with shape {df.shape}")
+        dataframes.append(df)
+
+    return pl.concat(dataframes)
+
+
 class DatasetLoader:
     """Manages loading and access to multiple DNS datasets for training.
 
@@ -348,22 +349,6 @@ class DatasetLoader:
             max_rows=self.max_rows,
         )
         return self.heicloud_data
-
-    @property
-    def cic_dataset(self) -> Dataset:
-        self.cic_data = Dataset(
-            name="cic",
-            data_path=[
-                f"{self.base_path}/cic/CICBellDNS2021_CSV_benign.csv",
-                f"{self.base_path}/cic/CICBellDNS2021_CSV_malware.csv",
-                f"{self.base_path}/cic/CICBellDNS2021_CSV_phishing.csv",
-                f"{self.base_path}/cic/CICBellDNS2021_CSV_spam.csv",
-            ],
-            cast_dataset=cast_cic,
-            max_rows=self.max_rows,
-        )
-        return self.cic_data
-
     @property
     def dgarchive_dataset(self) -> list[Dataset]:
         dgarchive_files = [
@@ -380,6 +365,23 @@ class DatasetLoader:
                 )
             )
         return self.dgarchive_data
+    
+    @property
+    def domainator_dataset(self) -> Dataset:
+        self.domainator_data = Dataset(
+            name="domainator",
+            data_path={
+                f"{self.base_path}/domainator/domainator_combined.csv",
+                f"{self.base_path}/domainator/domainator_ziza.csv"
+            },
+            cast_dataset=cast_domainator,
+            max_rows=self.max_rows
+        )
+
+        logger.debug("Domainator Loader")
+        logger.debug(self.domainator_data)
+
+        return self.domainator_data
 
 
 @dataclass

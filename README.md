@@ -16,9 +16,7 @@
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
-  <a href="https://github.com/hamstring-ndr/hamstring">
-    <img src="" alt="Logo">
-  </a>
+    <img src="./assets/hamstring.svg" alt="Logo">
 
 <h3 align="center">HAMSTRING</h3>
 
@@ -34,8 +32,6 @@
   </p>
 </div>
 
-> [!CAUTION]
-> This project has been moved to https://github.com/Hamstring-NDR/hamstring. Future development, issues, and releases will be maintained there.
 
 <table>
 <tr>
@@ -56,7 +52,7 @@
 
 ## About the Project
 
-![Pipeline overview](https://raw.githubusercontent.com/hamstring-ndr/hamstring/main/docs/media/hamstring_overview_detailed.drawio.png?raw=true)
+![Pipeline overview](./assets/heidgaf_architecture.svg)
 
 ## Getting Started
 
@@ -68,25 +64,9 @@ HOST_IP=127.0.0.1 docker compose -f docker/docker-compose.yml --profile prod up
   <img src="https://raw.githubusercontent.com/hamstring-ndr/hamstring/main/assets/terminal_example.gif?raw=true" alt="Terminal example"/>
 </p>
 
-#### Use the dev profile for testing out changes in docke containers:
+#### Use the dev profile for testing out changes in docker containers:
 ```sh
 HOST_IP=127.0.0.1 docker compose -f docker/docker-compose.yml --profile dev up
-```
-
-
-#### Or run the modules locally on your machine:
-```sh
-python -m venv .venv
-source .venv/bin/activate
-
-sh install_requirements.sh
-```
-Alternatively, you can use `pip install` and enter all needed requirements individually with `-r requirements.*.txt`.
-
-Now, you can start each stage, e.g. the inspector:
-
-```sh
-python src/inspector/inspector.py
 ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
@@ -125,6 +105,11 @@ The options `pipeline.data_inspection` and `pipeline.data_analysis` are relevant
 For more in-depth information on your options, have a look at our
 [official documentation](https://hamstring.readthedocs.io/en/latest/usage.html), where we provide tables explaining all
 values in detail.
+
+
+### Testing Your Own Data
+
+If you want to ingest data to the pipeline, you can do so via the zeek container. Either select the interface in the `config.yaml` zeek should be listening on and set `static_analysis: false` or provide PCAPs to Zeek by adding them in the `data/test_pcaps` directory, which is mounted per default for Zeek to ingest static data. 
 
 ### Monitoring
 To monitor the system and observe its real-time behavior, multiple Grafana dashboards have been set up.
@@ -209,22 +194,17 @@ Have a look at the following pictures showing examples of how these dashboards m
 
 To train and test our and possibly your own models, we currently rely on the following datasets:
 
-- [CICBellDNS2021](https://www.unb.ca/cic/datasets/dns-2021.html)
 - [DGTA Benchmark](https://data.mendeley.com/datasets/2wzf9bz7xr/1)
 - [DNS Tunneling Queries for Binary Classification](https://data.mendeley.com/datasets/mzn9hvdcxg/1)
 - [UMUDGA - University of Murcia Domain Generation Algorithm Dataset](https://data.mendeley.com/datasets/y8ph45msv8/1)
 - [DGArchive](https://dgarchive.caad.fkie.fraunhofer.de/)
+- [DNS Exfiltration](https://data.mendeley.com/datasets/c4n7fckkz3/3)
 
 We compute all features separately and only rely on the `domain` and `class` for binary classification.
 
 ### Inserting Data for Testing
 
-For testing purposes, we provide multiple scripts in the `scripts` directory. Use `real_logs.dev.py` to send data from
-the datasets into the pipeline. After downloading the dataset and storing it under `<project-root>/data`, run
-```sh
-python scripts/real_logs.dev.py
-```
-to start continuously inserting dataset traffic.
+For testing purposes, you can ingest PCAPs or tap on network interfaces using the zeek-based sensor in its `1.0.0` release. For more information on it, please refer to [the documentation](https://github.com/Hamstring-NDR/hamstring-zeek).
 
 ### Training Your Own Models
 
@@ -270,7 +250,7 @@ The results will be saved per default to `./results`, if not configured otherwis
 #### Model Tests
 
 ```sh
-> python src/train/train.py test  --dataset <dataset_type> --dataset_path <path/to/your/datasets> --model <model_name> --model_path <path_to_model_version>
+> python src/train/train.py test  --dataset <dataset_type> --dataset_path <path/to/your/datasets> --model <model_name> --model_output_path <path_to_model_version>
 ```
 
 #### Model Explain

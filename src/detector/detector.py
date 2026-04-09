@@ -17,6 +17,7 @@ from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.utils import setup_config, generate_collisions_resistant_uuid
 from src.base.kafka_handler import (
     ExactlyOnceKafkaConsumeHandler,
+    ExactlyOnceKafkaProduceHandler,
     KafkaMessageFetchException,
 )
 from src.base.log_config import get_logger
@@ -33,6 +34,9 @@ DETECTORS = config["pipeline"]["data_analysis"]
 
 CONSUME_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"][
     "inspector_to_detector"
+]
+PRODUCE_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"][
+    "detector_to_alerter"
 ]
 
 PLUGIN_PATH = "src.detector.plugins"
@@ -57,7 +61,7 @@ class DetectorAbstractBase(ABC):  # pragma: no cover
     """
 
     @abstractmethod
-    def __init__(self, detector_config, consume_topic) -> None:
+    def __init__(self, detector_config, consume_topic, produce_topics) -> None:
         pass
 
     @abstractmethod
@@ -85,7 +89,7 @@ class DetectorBase(DetectorAbstractBase):
     that provide model-specific prediction logic.
     """
 
-    def __init__(self, detector_config, consume_topic) -> None:
+    def __init__(self, detector_config, consume_topic, produce_topics) -> None:
         """
         Initialize the detector with configuration and Kafka topic settings.
 
@@ -104,6 +108,7 @@ class DetectorBase(DetectorAbstractBase):
         self.threshold = detector_config["threshold"]
 
         self.consume_topic = consume_topic
+        self.produce_topics = produce_topics
         self.suspicious_batch_id = None
         self.key = None
         self.messages = []
@@ -118,6 +123,7 @@ class DetectorBase(DetectorAbstractBase):
         )
 
         self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(self.consume_topic)
+        self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()
 
         self.model, self.scaler = self._get_model()
 
@@ -256,22 +262,26 @@ class DetectorBase(DetectorAbstractBase):
             requests.HTTPError: If there's an error downloading the model.
         """
         logger.info(f"Get model: {self.model} with checksum {self.checksum}")
-        # TODO test the if!
-        if not os.path.isfile(self.model_path):
-            model_download_url = self.get_model_download_url()
-            logger.info(
-                f"downloading model {self.model} from {model_download_url} with checksum {self.checksum}"
-            )
-            response = requests.get(model_download_url)
-            response.raise_for_status()
-            with open(self.model_path, "wb") as f:
-                f.write(response.content)
-            scaler_download_url = self.get_scaler_download_url()
+        # if not os.path.isfile(self.model_path):
+        model_download_url = self.get_model_download_url()
+        logger.info(
+            f"downloading model {self.model} from {model_download_url} with checksum {self.checksum}"
+        )
+        response = requests.get(model_download_url)
+        response.raise_for_status()
+        with open(self.model_path, "wb") as f:
+            f.write(response.content)
+        # Handle optional scaler
+        scaler_download_url = self.get_scaler_download_url()
+        if scaler_download_url:
             scaler_response = requests.get(scaler_download_url)
             scaler_response.raise_for_status()
             with open(self.scaler_path, "wb") as f:
                 f.write(scaler_response.content)
-
+            with open(self.scaler_path, "rb") as input_file:
+                scaler = pickle.load(input_file)
+        else:
+            scaler = None
         # Check file sha256
         local_checksum = self._sha256sum(self.model_path)
 
@@ -285,9 +295,6 @@ class DetectorBase(DetectorAbstractBase):
 
         with open(self.model_path, "rb") as input_file:
             clf = pickle.load(input_file)
-
-        with open(self.scaler_path, "rb") as input_file:
-            scaler = pickle.load(input_file)
 
         return clf, scaler
 
@@ -307,10 +314,10 @@ class DetectorBase(DetectorAbstractBase):
         """
         logger.info("Start detecting malicious requests.")
         for message in self.messages:
-            # TODO predict all messages
             y_pred = self.predict(message)
             logger.info(f"Prediction: {y_pred}")
-            if np.argmax(y_pred, axis=1) == 1 and y_pred[0][1] > self.threshold:
+            # TODO: DO NOT USE if TRUE for prod!!!
+            if True: # np.argmax(y_pred, axis=1) == 1 and y_pred[0][1] > self.threshold:
                 logger.info("Append malicious request to warning.")
                 warning = {
                     "request": message,
@@ -348,12 +355,23 @@ class DetectorBase(DetectorAbstractBase):
             overall_score = median(
                 [warning["probability"] for warning in self.warnings]
             )
-            alert = {"overall_score": overall_score, "result": self.warnings}
+            alert = {
+                "overall_score": overall_score,
+                "result": self.warnings,
+                "src_ip": self.key,
+                "alert_timestamp": datetime.datetime.now().isoformat(),
+                "suspicious_batch_id": str(self.suspicious_batch_id),
+                "detector_name": self.name
+            }
 
-            logger.info(f"Add alert: {alert}")
-            with open(os.path.join(tempfile.gettempdir(), "warnings.json"), "a+") as f:
-                json.dump(alert, f)
-                f.write("\n")
+            logger.info(f"Producing alert to Kafka: {alert}")
+            
+            for topic in self.produce_topics:
+                self.kafka_produce_handler.produce(
+                    topic=topic,
+                    data=json.dumps(alert),
+                    key=self.key,
+                )
 
             self.alerts.insert(
                 dict(
@@ -506,15 +524,24 @@ async def main():  # pragma: no cover
     3. Creates detector instances
     4. Starts all detectors concurrently
     """
+    # ensure all detectors configure what to do
+    # instead of doing ensure alert directly we now use alerter topics
+    
     tasks = []
     for detector_config in DETECTORS:
         consume_topic = f"{CONSUME_TOPIC_PREFIX}-{detector_config['name']}"
+        produce_topics_str = detector_config.get("produce_topics", "")
+        if produce_topics_str:
+            produce_topics = [f"{PRODUCE_TOPIC_PREFIX}-{t.strip()}" for t in produce_topics_str.split(",")]
+        else:
+            produce_topics = [f"{PRODUCE_TOPIC_PREFIX}-generic"]
+
         class_name = detector_config["detector_class_name"]
         module_name = f"{PLUGIN_PATH}.{detector_config['detector_module_name']}"
         module = importlib.import_module(module_name)
         DetectorClass = getattr(module, class_name)
         detector = DetectorClass(
-            detector_config=detector_config, consume_topic=consume_topic
+            detector_config=detector_config, consume_topic=consume_topic, produce_topics=produce_topics
         )
         tasks.append(asyncio.create_task(detector.start()))
     await asyncio.gather(*tasks)

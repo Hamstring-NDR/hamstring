@@ -253,7 +253,36 @@ To entirely skip the anomaly detection phase, you can set ``inspector_module_nam
    * - threshold
      - ``0.5``
      - Threshold for the detector's classification.
+   * - produce_topics
+     - ``(empty)``
+     - (Optional) Comma-separated list of topic suffixes to produce alerts to. If left empty, defaults to the ``generic`` topic.
 
+
+``pipeline.alerting``
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. list-table:: ``alerting`` Parameters
+   :header-rows: 1
+   :widths: 30 20 50
+
+   * - Parameter
+     - Default Value
+     - Description
+   * - log_to_file
+     - ``true``
+     - Boolean flag to enable/disable logging of alerts to a local file.
+   * - log_to_kafka
+     - ``true``
+     - Boolean flag to enable/disable forwarding of alerts to an external Kafka topic.
+   * - log_file_path
+     - ``"/opt/logs/alerts.txt"``
+     - Local file path where alerts will be appended if ``log_to_file`` is enabled.
+   * - external_kafka_topic
+     - ``"hamstring_alerts"``
+     - Name of the external Kafka topic where alerts will be sent if ``log_to_kafka`` is enabled.
+   * - plugins
+     - ``[]``
+     - List of custom alerter plugins to execute. Each plugin must specify ``name``, ``alerter_module_name``, and ``alerter_class_name``.
 
 ``pipeline.zeek``
 ^^^^^^^^^^^^^^^^^

@@ -10,13 +10,13 @@ RUN apt-get update && \
 
 # Build the virtualenv as a separate step: Only re-execute this step when requirements.txt changes
 FROM build AS build-venv
-COPY requirements/requirements.detector.txt /requirements.detector.txt
-RUN /venv/bin/pip install --disable-pip-version-check -r /requirements.detector.txt
+COPY requirements/requirements.alerter.txt /requirements.alerter.txt
+RUN /venv/bin/pip install --disable-pip-version-check -r /requirements.alerter.txt
 
 # Copy the virtualenv into a distroless image
 FROM gcr.io/distroless/python3-debian12
 COPY --from=build-venv /venv /venv
 COPY src/base /app/src/base
-COPY src/detector /app/src/detector
+COPY src/alerter /app/src/alerter
 WORKDIR /app
-ENTRYPOINT ["/venv/bin/python3", "src/detector/detector.py"]
+ENTRYPOINT ["/venv/bin/python3", "src/alerter/alerter.py"]

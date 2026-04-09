@@ -126,3 +126,22 @@ services:
       #        capabilities: [ gpu ]
     environment:
       - GROUP_ID=data_analysis
+
+  alerter:
+    # build:
+    #   context: ../../..
+    #   dockerfile: docker/dockerfiles/Dockerfile.alerter
+    #   network: host
+    image: stefan96/hamstring-alerter:v1.0.0
+    restart: "unless-stopped"
+    volumes:
+      - ../../../config.yaml:/app/config.yaml
+      - /opt/logs:/opt/logs
+    networks:
+      hamstring:
+    # platform: linux/x86_64
+    deploy:
+      mode: "replicated"
+      replicas: 1
+    environment:
+      - GROUP_ID=data_alerting
