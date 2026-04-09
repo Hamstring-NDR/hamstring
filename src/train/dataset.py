@@ -138,39 +138,6 @@ def cast_bambenek(data_path: str, max_rows: int) -> pl.DataFrame:
     return df  # pl.concat([df_legit, df_malicious])
 
 
-def cast_cic(data_path: List[str], max_rows: int) -> pl.DataFrame:
-    """Loads and processes CIC DNS dataset from multiple CSV files.
-
-    Reads CIC DNS datasets (benign, malware, phishing, spam), assigns appropriate
-    class labels based on filename, and combines all datasets into a unified format.
-
-    Args:
-        data_path (List[str]): List of paths to CIC dataset CSV files.
-        max_rows (int): Maximum number of rows to process per file.
-
-    Returns:
-        pl.DataFrame: Combined CIC dataset with structured domain information.
-    """
-    dataframes = []
-    for data in data_path:
-        logger.info(f"Start casting data set {data}.")
-        y = data.split("_")[-1].split(".")[0]
-        df = pl.read_csv(
-            data, has_header=False, n_rows=max_rows if max_rows > 0 else None
-        )
-        if y == "benign":
-            df = df.with_columns([pl.lit("legit").alias("class")])
-        else:
-            df = df.with_columns([pl.lit(y).alias("class")])
-        df = df.rename({"column_1": "query"})
-        df = preprocess(df)
-
-        logger.info(f"Data loaded with shape {df.shape}")
-        dataframes.append(df)
-
-    return pl.concat(dataframes)
-
-
 def cast_dgarchive(data_path: str, max_rows: int) -> pl.DataFrame:
     """Loads and processes DGArchive dataset from CSV file.
 
@@ -382,22 +349,6 @@ class DatasetLoader:
             max_rows=self.max_rows,
         )
         return self.heicloud_data
-
-    @property
-    def cic_dataset(self) -> Dataset:
-        self.cic_data = Dataset(
-            name="cic",
-            data_path=[
-                f"{self.base_path}/cic/CICBellDNS2021_CSV_benign.csv",
-                f"{self.base_path}/cic/CICBellDNS2021_CSV_malware.csv",
-                f"{self.base_path}/cic/CICBellDNS2021_CSV_phishing.csv",
-                f"{self.base_path}/cic/CICBellDNS2021_CSV_spam.csv",
-            ],
-            cast_dataset=cast_cic,
-            max_rows=self.max_rows,
-        )
-        return self.cic_data
-
     @property
     def dgarchive_dataset(self) -> list[Dataset]:
         dgarchive_files = [

@@ -39,7 +39,6 @@ class DatasetEnum(str, Enum):
     """Available dataset configurations for DGA detection model training"""
 
     COMBINE = "combine"
-    CIC = "cic"
     DGTA = "dgta"
     DGARCHIVE = "dgarchive"
     DOMAINATOR = 'domainator'
@@ -113,9 +112,6 @@ class DetectorTraining:
                 self.dataset.append(self.dataset_loader.dga_dataset)
                 self.dataset.append(self.dataset_loader.heicloud_dataset)
                 self.dataset = self.dataset + self.dataset_loader.dgarchive_dataset
-            # CIC DNS does work in practice and data is not clean.
-            case "cic":
-                self.dataset.append(self.dataset_loader.cic_dataset)
             case "dgta":
                 self.dataset.append(self.dataset_loader.dgta_dataset)
             case "dgarchive":
@@ -383,8 +379,8 @@ _ds_options = [
         "--dataset",
         "dataset",
         default="combine",
-        type=click.Choice(["combine", "dgarchive", "cic", "dgta", "domainator"]),
-        help="Data set to train model, choose between all available datasets, DGArchive, CIC and DGTA.",
+        type=click.Choice(["combine", "dgarchive", "dgta", "domainator"]),
+        help="Data set to train model, choose between all available datasets, DGArchive, dominator (DNS Exfiltration) and DGTA.",
     ),
     click.option(
         "--dataset_path",
