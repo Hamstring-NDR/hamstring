@@ -25,7 +25,8 @@ jobs:
                      "logcollector",
                      "logserver",
                      "prefilter",
-                     "monitoring"
+                     "monitoring",
+                     "alerter",
         ]
     permissions:
       contents: read
