@@ -562,7 +562,9 @@ class TestGetModelMethod(unittest.TestCase):
             "src.detector.detector.open", mock_open()
         ), patch(
             "src.detector.detector.pickle.load", return_value="mock_model_or_scaler"
-        ), patch.object(sut, "_sha256sum", return_value="wrong_checksum_value"):
+        ), patch.object(
+            sut, "_sha256sum", return_value="wrong_checksum_value"
+        ):
 
             with self.assertRaises(WrongChecksum) as context:
                 sut._get_model()
