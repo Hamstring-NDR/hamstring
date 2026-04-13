@@ -13,7 +13,7 @@ logger = get_logger(module_name)
 
 class DomainatorDetector(DetectorBase):
     """
-    Detector implementation for identifying data exfiltration and command and control on the 
+    Detector implementation for identifying data exfiltration and command and control on the
     subdomain level.
 
     This class extends the DetectorBase to provide specific functionality for detecting
@@ -91,12 +91,12 @@ class DomainatorDetector(DetectorBase):
             np.ndarray: Prediction probabilities for each class. Typically a 2D array
                 where the shape is (1, 2) for binary classification (benign/malicious).
         """
-        queries = [message['domain_name'] for message in messages]
+        queries = [message["domain_name"] for message in messages]
 
         y_pred = self.model.predict_proba(self._get_features(queries))
         print(f"Prediction: {y_pred}")
         return y_pred
-    
+
     def detect(self):
         logger.info("Start detecting malicious requests.")
         for message in self.messages:
@@ -119,7 +119,6 @@ class DomainatorDetector(DetectorBase):
                 if len(self.message_queues[message_domain]) >= 10:
                     del self.message_queues[message_domain][0]
 
-        
     def _strip_domain(self, query: str):
         """Extract the domain name from the message for the window grouping
 
@@ -140,7 +139,6 @@ class DomainatorDetector(DetectorBase):
 
         return domain
 
-
     def _get_features(self, queries: list) -> np.ndarray:
         """Extracts feature vector from domain name for ML model inference.
 
@@ -154,32 +152,73 @@ class DomainatorDetector(DetectorBase):
         Returns:
             numpy.ndarray: Feature vector ready for ML model prediction.
         """
-        
+
         queries = [query.strip(".") for query in queries]
-        subdomains = ['.'.join(domain.split(".")[:-2]) for domain in queries]
+        subdomains = [".".join(domain.split(".")[:-2]) for domain in queries]
 
         # Values can be put directly into an array, as the return converts them anyway,
         # but this slightly improves readability
         metrics = {
-            'levenshtein': [],
-            'jaro': [],
-            'rev_jaro': [],
-            'jaro_winkler': [],
-            'rev_jaro_wink': [],
-            'lcs_seq': [],
-            'lcs_str': [],
+            "levenshtein": [],
+            "jaro": [],
+            "rev_jaro": [],
+            "jaro_winkler": [],
+            "rev_jaro_wink": [],
+            "lcs_seq": [],
+            "lcs_str": [],
         }
 
         # if subdomains:
         cartesian = list(itertools.combinations(subdomains, 2))
 
-        metrics['levenshtein'] = np.mean([Levenshtein.ratio(product[0], product[1]) for product in cartesian])
-        metrics['jaro'] = np.mean([Levenshtein.jaro(product[0], product[1]) for product in cartesian])
-        metrics['jaro_winkler'] = np.mean([Levenshtein.jaro_winkler(product[0], product[1], prefix_weight=0.2) for product in cartesian])
-        metrics['rev_jaro'] = np.mean([Levenshtein.jaro(product[0][::-1], product[1][::-1]) for product in cartesian])
-        metrics['rev_jaro_wink'] = np.mean([Levenshtein.jaro_winkler(product[0][::-1], product[1][::-1], prefix_weight=0.2) for product in cartesian])
+        metrics["levenshtein"] = np.mean(
+            [Levenshtein.ratio(product[0], product[1]) for product in cartesian]
+        )
+        metrics["jaro"] = np.mean(
+            [Levenshtein.jaro(product[0], product[1]) for product in cartesian]
+        )
+        metrics["jaro_winkler"] = np.mean(
+            [
+                Levenshtein.jaro_winkler(product[0], product[1], prefix_weight=0.2)
+                for product in cartesian
+            ]
+        )
+        metrics["rev_jaro"] = np.mean(
+            [
+                Levenshtein.jaro(product[0][::-1], product[1][::-1])
+                for product in cartesian
+            ]
+        )
+        metrics["rev_jaro_wink"] = np.mean(
+            [
+                Levenshtein.jaro_winkler(
+                    product[0][::-1], product[1][::-1], prefix_weight=0.2
+                )
+                for product in cartesian
+            ]
+        )
 
-        metrics['lcs_seq'] = np.mean([pylcs.lcs_sequence_length(product[0], product[1])/((len(product[0]) + len(product[1]))/2) if len(product[0]) and len(product[1]) else 0.0 for product in cartesian ])
-        metrics['lcs_str'] = np.mean([pylcs.lcs_string_length(product[0], product[1])/((len(product[0]) + len(product[1]))/2) if len(product[0]) and len(product[1]) else 0.0 for product in cartesian])
+        metrics["lcs_seq"] = np.mean(
+            [
+                (
+                    pylcs.lcs_sequence_length(product[0], product[1])
+                    / ((len(product[0]) + len(product[1])) / 2)
+                    if len(product[0]) and len(product[1])
+                    else 0.0
+                )
+                for product in cartesian
+            ]
+        )
+        metrics["lcs_str"] = np.mean(
+            [
+                (
+                    pylcs.lcs_string_length(product[0], product[1])
+                    / ((len(product[0]) + len(product[1])) / 2)
+                    if len(product[0]) and len(product[1])
+                    else 0.0
+                )
+                for product in cartesian
+            ]
+        )
 
         return np.fromiter(metrics.values(), dtype=float).reshape(1, -1)

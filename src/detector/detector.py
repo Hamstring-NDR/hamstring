@@ -317,7 +317,9 @@ class DetectorBase(DetectorAbstractBase):
             y_pred = self.predict(message)
             logger.info(f"Prediction: {y_pred}")
             # TODO: DO NOT USE if TRUE for prod!!!
-            if True: # np.argmax(y_pred, axis=1) == 1 and y_pred[0][1] > self.threshold:
+            if (
+                True
+            ):  # np.argmax(y_pred, axis=1) == 1 and y_pred[0][1] > self.threshold:
                 logger.info("Append malicious request to warning.")
                 warning = {
                     "request": message,
@@ -361,11 +363,11 @@ class DetectorBase(DetectorAbstractBase):
                 "src_ip": self.key,
                 "alert_timestamp": datetime.datetime.now().isoformat(),
                 "suspicious_batch_id": str(self.suspicious_batch_id),
-                "detector_name": self.name
+                "detector_name": self.name,
             }
 
             logger.info(f"Producing alert to Kafka: {alert}")
-            
+
             for topic in self.produce_topics:
                 self.kafka_produce_handler.produce(
                     topic=topic,
@@ -526,13 +528,16 @@ async def main():  # pragma: no cover
     """
     # ensure all detectors configure what to do
     # instead of doing ensure alert directly we now use alerter topics
-    
+
     tasks = []
     for detector_config in DETECTORS:
         consume_topic = f"{CONSUME_TOPIC_PREFIX}-{detector_config['name']}"
         produce_topics_str = detector_config.get("produce_topics", "")
         if produce_topics_str:
-            produce_topics = [f"{PRODUCE_TOPIC_PREFIX}-{t.strip()}" for t in produce_topics_str.split(",")]
+            produce_topics = [
+                f"{PRODUCE_TOPIC_PREFIX}-{t.strip()}"
+                for t in produce_topics_str.split(",")
+            ]
         else:
             produce_topics = [f"{PRODUCE_TOPIC_PREFIX}-generic"]
 
@@ -541,7 +546,9 @@ async def main():  # pragma: no cover
         module = importlib.import_module(module_name)
         DetectorClass = getattr(module, class_name)
         detector = DetectorClass(
-            detector_config=detector_config, consume_topic=consume_topic, produce_topics=produce_topics
+            detector_config=detector_config,
+            consume_topic=consume_topic,
+            produce_topics=produce_topics,
         )
         tasks.append(asyncio.create_task(detector.start()))
     await asyncio.gather(*tasks)

@@ -19,7 +19,7 @@ pipeline:
   log_storage:
     logserver:
       input_file: "/opt/file.txt"
-  
+
 
 
 

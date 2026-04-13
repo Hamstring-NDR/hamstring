@@ -41,7 +41,7 @@ class DatasetEnum(str, Enum):
     COMBINE = "combine"
     DGTA = "dgta"
     DGARCHIVE = "dgarchive"
-    DOMAINATOR = 'domainator'
+    DOMAINATOR = "domainator"
 
 
 @unique

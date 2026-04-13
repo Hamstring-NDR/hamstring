@@ -262,7 +262,7 @@ def cast_heicloud(data_path: str, max_rows: int) -> pl.DataFrame:
 def cast_domainator(data_path: List[str], max_rows: int) -> pl.DataFrame:
     """Loads and processes Domainator dataset from multiple CSV files.
 
-    Reads Domainator datasets (benign, malicious), appends a user source if not present, 
+    Reads Domainator datasets (benign, malicious), appends a user source if not present,
     then processes the queries and combines the datasets into one for training
 
     Args:
@@ -280,10 +280,10 @@ def cast_domainator(data_path: List[str], max_rows: int) -> pl.DataFrame:
             path,
             separator=",",
             has_header=True,
-            n_rows=max_rows if max_rows > 0 else None
+            n_rows=max_rows if max_rows > 0 else None,
         )
-        if 'user' not in df.columns:
-            df.insert_column(0, pl.Series('user', ['testbed']*len(df)))
+        if "user" not in df.columns:
+            df.insert_column(0, pl.Series("user", ["testbed"] * len(df)))
         df = preprocess(df, keep_all=True)
         logger.info(f"Data loaded with shape {df.shape}")
         dataframes.append(df)
@@ -349,6 +349,7 @@ class DatasetLoader:
             max_rows=self.max_rows,
         )
         return self.heicloud_data
+
     @property
     def dgarchive_dataset(self) -> list[Dataset]:
         dgarchive_files = [
@@ -365,17 +366,17 @@ class DatasetLoader:
                 )
             )
         return self.dgarchive_data
-    
+
     @property
     def domainator_dataset(self) -> Dataset:
         self.domainator_data = Dataset(
             name="domainator",
             data_path={
                 f"{self.base_path}/domainator/domainator_combined.csv",
-                f"{self.base_path}/domainator/domainator_ziza.csv"
+                f"{self.base_path}/domainator/domainator_ziza.csv",
             },
             cast_dataset=cast_domainator,
-            max_rows=self.max_rows
+            max_rows=self.max_rows,
         )
 
         logger.debug("Domainator Loader")
