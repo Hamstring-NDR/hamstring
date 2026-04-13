@@ -1,0 +1,159 @@
+name: Publish Docker Images (main)
+
+# Triggers on direct pushes to 'main', which includes PR/merge-commit merges.
+on:
+  push:
+    branches: [ "main" ]
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  bump-version:
+    name: Bump VERSION file
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # needed to push back VERSION + Git tag
+    outputs:
+      new_version: ${{ steps.bump.outputs.version }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
+          fetch-depth: 0
+
+      - name: Detect source branch and bump version
+        id: bump
+        run: |
+          # ── Detect source branch from merge commit subject ──────────────────
+          # Standard merge commit message: "Merge branch 'feature/foo' into main"
+          MERGE_SUBJECT="$(git log --merges -1 --pretty=%s HEAD)"
+          echo "Merge subject: ${MERGE_SUBJECT}"
+
+          SOURCE=$(echo "$MERGE_SUBJECT" | sed -n "s/Merge branch '\([^']*\)'.*/\1/p")
+          SOURCE="${SOURCE#origin/}"   # strip remote prefix if present
+
+          if [[ -z "$SOURCE" ]]; then
+            SOURCE="unknown"
+            echo "::warning::Could not detect source branch; defaulting to 'unknown' (no bump)."
+          fi
+          echo "Detected source branch: ${SOURCE}"
+
+          # ── Read and parse current VERSION ──────────────────────────────────
+          RAW="$(cat VERSION | tr -d '[:space:]')"
+          CLEAN="${RAW#v}"        # strip leading v
+          CLEAN="${CLEAN%-dev}"   # strip any existing -dev suffix
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CLEAN"
+
+          # ── Decide bump strategy ─────────────────────────────────────────────
+          # When the source branch is 'dev', the version was already incremented
+          # on the dev side — just promote it by stripping '-dev' (no new bump).
+          # For any other source branch, apply the normal semver bump.
+          if [[ "$SOURCE" != "dev" ]]; then
+            PREFIX="${SOURCE%%/*}"
+            case "$PREFIX" in
+              feature)
+                MINOR=$(( MINOR + 1 )); PATCH=0
+                ;;
+              bugfix|hotfix)
+                PATCH=$(( PATCH + 1 ))
+                ;;
+              release)
+                MAJOR=$(( MAJOR + 1 )); MINOR=0; PATCH=0
+                ;;
+              *)
+                # unknown prefix → no bump
+                ;;
+            esac
+          fi
+
+          # ── Compose new version (no -dev suffix on main) ─────────────────────
+          NEW_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
+          echo "${NEW_VERSION}" > VERSION
+
+          echo "version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "New version: ${NEW_VERSION}"
+
+      - name: Commit and push updated VERSION
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add VERSION
+          git commit -m "chore: release ${{ steps.bump.outputs.version }} [skip ci]"
+          git push
+
+      - name: Create and push Git release tag
+        run: |
+          git tag "${{ steps.bump.outputs.version }}"
+          git push origin "${{ steps.bump.outputs.version }}"
+
+  build-and-push:
+    name: Build & Push ${{ matrix.container }}
+    needs: bump-version
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        container:
+          - detector
+          - inspector
+          - logcollector
+          - logserver
+          - prefilter
+          - monitoring
+          - alerter
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main   # pick up the commit that includes the updated VERSION
+
+      - name: Derive partial version tags
+        id: version
+        run: |
+          VERSION="$(cat VERSION | tr -d '[:space:]')"
+          CLEAN="${VERSION#v}"
+          MAJOR="${CLEAN%%.*}"
+          MINOR_PATCH="${CLEAN#*.}"
+          MINOR="${MINOR_PATCH%%.*}"
+          echo "major=v${MAJOR}"                >> "$GITHUB_OUTPUT"
+          echo "major_minor=v${MAJOR}.${MINOR}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Docker buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log into registry ${{ env.REGISTRY }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}-${{ matrix.container }}
+          tags: |
+            type=raw,value=${{ needs.bump-version.outputs.new_version }}
+            type=raw,value=${{ steps.version.outputs.major_minor }}
+            type=raw,value=${{ steps.version.outputs.major }}
+            type=raw,value=latest
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          file: ./docker/dockerfiles/Dockerfile.${{ matrix.container }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
