@@ -1,12 +1,7 @@
 services:
   monitoring_agent:
-    # build:
-    #   context: ../../..
-    #   dockerfile: docker/dockerfiles/Dockerfile.monitoring
-    #   network: host
-    image: stefan96/hamstring-monitoring:v1.0.0
+    image: ghcr.io/hamstring-ndr/hamstring-monitoring:v1.0.0
     restart: "unless-stopped"
-    # platform: linux/x86_64
     volumes:
       - ../../../config.yaml:/app/config.yaml
     depends_on:

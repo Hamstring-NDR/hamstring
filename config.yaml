@@ -122,7 +122,7 @@ pipeline:
 
   zeek:
     sensors:
-      zeek-1:
+      zeek:
         static_analysis: true
         protocols:
           - dns

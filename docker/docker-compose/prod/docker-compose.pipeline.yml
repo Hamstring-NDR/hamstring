@@ -1,89 +1,44 @@
 services:
   logserver:
-    # build:
-    #   context: ../../..
-    #   dockerfile: docker/dockerfiles/Dockerfile.logserver
-    #   network: host
-    image: stefan96/hamstring-logserver:v1.0.0
+    image:  ghcr.io/hamstring-ndr/hamstring-logserver:v2.0.0
     restart: "unless-stopped"
     networks:
       hamstring:
-    # platform: linux/x86_64
-    # memswap_limit: 768m
-    # deploy:
-    #   resources:
-    #     limits:
-    #       cpus: '2'
-    #       memory: 512m
-    #     reservations:
-    #       cpus: '1'
-    #       memory: 256m
     volumes:
       - "${MOUNT_PATH:?MOUNT_PATH not set}:/opt/file.txt"
       - ../../../config.yaml:/app/config.yaml
     environment:
       - GROUP_ID=log_storage
   logcollector:
-    # build:
-    #   context: ../../..
-    #   dockerfile: docker/dockerfiles/Dockerfile.logcollector
-    #   network: host
-    image: stefan96/hamstring-logcollector:v1.0.0
+    image:  ghcr.io/hamstring-ndr/hamstring-logcollector:v2.0.0
     restart: "unless-stopped"
     volumes:
       - ../../../config.yaml:/app/config.yaml
     networks:
       hamstring:
-    # platform: linux/x86_64
-    # memswap_limit: 768m
-    # deploy:
-    #   resources:
-    #     limits:
-    #       cpus: '2'
-    #       memory: 512m
-    #     reservations:
-    #       cpus: '1'
-    #       memory: 256m
     environment:
       - GROUP_ID=log_collection
 
   prefilter:
-    # build:
-    #   context: ../../..
-    #   dockerfile: docker/dockerfiles/Dockerfile.prefilter
-    #   network: host
-    image: stefan96/hamstring-prefilter:v1.0.0
+    image: ghcr.io/hamstring-ndr/hamstring-prefilter:v2.0.0
     restart: "unless-stopped"
     volumes:
       - ../../../config.yaml:/app/config.yaml
     networks:
       hamstring:
-    # platform: linux/x86_64
     deploy:
       mode: "replicated"
       replicas: 1
-      # resources:
-      #   limits:
-      #     cpus: '2'
-      #     memory: 512m
-      #   reservations:
-      #     cpus: '1'
-      #     memory: 256m
     environment:
       - GROUP_ID=log_filtering
 
   inspector:
-    # build:
-    #   context: ../../..
-    #   dockerfile: docker/dockerfiles/Dockerfile.inspector
-    #   network: host
-    image: stefan96/hamstring-inspector:v1.0.0
+    image:  ghcr.io/hamstring-ndr/hamstring-inspector:v2.0.0
     restart: "unless-stopped"
     volumes:
       - ../../../config.yaml:/app/config.yaml
     networks:
       hamstring:
-    # platform: linux/x86_64
     deploy:
       mode: "replicated"
       replicas: 1
@@ -99,47 +54,26 @@ services:
       - NUMBER_OF_INSTANCES=1
 
   detector:
-    # build:
-    #   context: ../../..
-    #   dockerfile: docker/dockerfiles/Dockerfile.detector
-    #   network: host
-    image: stefan96/hamstring-detector:v1.0.0
+    image:  ghcr.io/hamstring-ndr/hamstring-detector:v2.0.0
     restart: "unless-stopped"
     volumes:
       - ../../../config.yaml:/app/config.yaml
     networks:
       hamstring:
-    # platform: linux/x86_64
     deploy:
       mode: "replicated"
       replicas: 1
-      # resources:
-      #   limits:
-      #     cpus: '2'
-      #     memory: 512m
-      #  reservations:
-      #    cpus: '1'
-      #    memory: 256m
-      #    devices:
-      #      - driver: nvidia
-      #        count: 1 # alternatively, use `count: all` for all GPUs
-      #        capabilities: [ gpu ]
     environment:
       - GROUP_ID=data_analysis
 
   alerter:
-    # build:
-    #   context: ../../..
-    #   dockerfile: docker/dockerfiles/Dockerfile.alerter
-    #   network: host
-    image: stefan96/hamstring-alerter:v1.0.0
+    image:  ghcr.io/hamstring-ndr/hamstring-alerter:v2.0.0
     restart: "unless-stopped"
     volumes:
       - ../../../config.yaml:/app/config.yaml
       - /opt/logs:/opt/logs
     networks:
       hamstring:
-    # platform: linux/x86_64
     deploy:
       mode: "replicated"
       replicas: 1
