@@ -11,15 +11,15 @@ logger = get_logger(module_name)
 
 class GenericAlerter(AlerterBase):
     """
-    Specific implementation for an Alerter that processes alerts 
-    from a generic topic. 
-    
+    Specific implementation for an Alerter that processes alerts
+    from a generic topic.
+
     It performs no additional processing or transformation by itself,
     instead relying solely on the base actions (logging to file/Kafka).
     """
+
     def process_alert(self):
         """
         Generic implementation: no special processing needed.
         """
         pass
-

@@ -84,9 +84,9 @@ class Pipeline:
             try:
                 X, y = self._load_npy(ds.name)
             except FileNotFoundError:
-                if ds.name == 'domainator':
+                if ds.name == "domainator":
                     ds.data = self.processor.transform_domainator(x=ds.data)
-                    data = ds.data.drop('query')
+                    data = ds.data.drop("query")
                 else:
                     data = self.processor.transform(x=ds.data)
                 X = data.drop("class").to_numpy()

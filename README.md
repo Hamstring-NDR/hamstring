@@ -109,7 +109,7 @@ values in detail.
 
 ### Testing Your Own Data
 
-If you want to ingest data to the pipeline, you can do so via the zeek container. Either select the interface in the `config.yaml` zeek should be listening on and set `static_analysis: false` or provide PCAPs to Zeek by adding them in the `data/test_pcaps` directory, which is mounted per default for Zeek to ingest static data. 
+If you want to ingest data to the pipeline, you can do so via the zeek container. Either select the interface in the `config.yaml` zeek should be listening on and set `static_analysis: false` or provide PCAPs to Zeek by adding them in the `data/test_pcaps` directory, which is mounted per default for Zeek to ingest static data.
 
 ### Monitoring
 To monitor the system and observe its real-time behavior, multiple Grafana dashboards have been set up.

@@ -31,6 +31,7 @@ class AlerterAbstractBase(ABC):
     """
     Abstract base class for all alerter implementations.
     """
+
     @abstractmethod
     def __init__(self, alerter_config, consume_topic) -> None:
         pass
@@ -51,6 +52,7 @@ class AlerterBase(AlerterAbstractBase):
     executing custom processing via plugins, and performing base actions
     like logging to a file or forwarding to an external Kafka topic.
     """
+
     def __init__(self, alerter_config, consume_topic) -> None:
         self.name = alerter_config.get("name", "generic")
         self.consume_topic = consume_topic
@@ -59,12 +61,16 @@ class AlerterBase(AlerterAbstractBase):
         self.key = None
 
         self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(self.consume_topic)
-        
+
         # Base actions config
         self.log_to_file = ALERTING_CONFIG.get("log_to_file", False)
-        self.log_file_path = ALERTING_CONFIG.get("log_file_path", "/opt/logs/alerts.txt")
+        self.log_file_path = ALERTING_CONFIG.get(
+            "log_file_path", "/opt/logs/alerts.txt"
+        )
         self.log_to_kafka = ALERTING_CONFIG.get("log_to_kafka", False)
-        self.external_kafka_topic = ALERTING_CONFIG.get("external_kafka_topic", "external_alerts_topic")
+        self.external_kafka_topic = ALERTING_CONFIG.get(
+            "external_kafka_topic", "external_alerts_topic"
+        )
 
         if self.log_to_file:
             ensure_directory(self.log_file_path)
@@ -72,12 +78,11 @@ class AlerterBase(AlerterAbstractBase):
         if self.log_to_kafka:
             self._setup_kafka_output_topics()
 
-
     def _setup_kafka_output_topics(self):
         """
-        Ensure that the external Kafka topic exists. 
-        
-        Since no internal consumer subscribes to this topic, auto-creation 
+        Ensure that the external Kafka topic exists.
+
+        Since no internal consumer subscribes to this topic, auto-creation
         via consumer polling won't happen. We use AdminClient to ensure
         the topic exists before producing to it.
         """
@@ -92,10 +97,12 @@ class AlerterBase(AlerterAbstractBase):
         try:
             admin_client.create_topics([NewTopic(self.external_kafka_topic, 1, 1)])
         except Exception as e:
-            logger.warning(f"Could not auto-create topic {self.external_kafka_topic}: {e}")
-        
+            logger.warning(
+                f"Could not auto-create topic {self.external_kafka_topic}: {e}"
+            )
+
         self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()
-        
+
     def get_and_fill_data(self) -> None:
         if self.alert_data:
             logger.warning(
@@ -121,7 +128,7 @@ class AlerterBase(AlerterAbstractBase):
         """
         if not self.log_to_file:
             return
-        
+
         logger.info(f"{self.name}: Logging alert to file {self.log_file_path}")
         try:
             with open(self.log_file_path, "a+") as f:
@@ -138,7 +145,9 @@ class AlerterBase(AlerterAbstractBase):
         if not self.log_to_kafka:
             return
 
-        logger.info(f"{self.name}: Forwarding alert to topic {self.external_kafka_topic}")
+        logger.info(
+            f"{self.name}: Forwarding alert to topic {self.external_kafka_topic}"
+        )
         try:
             self.kafka_produce_handler.produce(
                 topic=self.external_kafka_topic,
@@ -151,7 +160,7 @@ class AlerterBase(AlerterAbstractBase):
 
     def bootstrap_alerter_instance(self):
         """
-        Main loop for the alerter instance. 
+        Main loop for the alerter instance.
         Consumes alerts, processes them, and executes base actions.
         """
         logger.info(f"Starting {self.name} Alerter")
@@ -185,18 +194,17 @@ class AlerterBase(AlerterAbstractBase):
         await loop.run_in_executor(None, self.bootstrap_alerter_instance)
 
 
-
 async def main():
     tasks = []
-    
+
     # Setup Generic Alerter Task
     generic_topic = f"{CONSUME_TOPIC_PREFIX}-generic"
-    logger.info("Initializing Generic Alerter")   
+    logger.info("Initializing Generic Alerter")
     class_name = "GenericAlerter"
     mod_name = f"{PLUGIN_PATH}.generic_alerter"
     module = importlib.import_module(mod_name)
     AlerterClass = getattr(module, class_name)
-            
+
     generic_alerter = AlerterClass(
         alerter_config={"name": "generic"}, consume_topic=generic_topic
     )
@@ -211,12 +219,12 @@ async def main():
             mod_name = f"{PLUGIN_PATH}.{alerter_config['alerter_module_name']}"
             module = importlib.import_module(mod_name)
             AlerterClass = getattr(module, class_name)
-            
+
             alerter_instance = AlerterClass(
                 alerter_config=alerter_config, consume_topic=consume_topic
             )
             tasks.append(asyncio.create_task(alerter_instance.start()))
-    
+
     await asyncio.gather(*tasks)
 
 

@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch, call
 
 import os
 import sys
+
 sys.path.append(os.getcwd())
 
 from src.detector.plugins.domainator_detector import DomainatorDetector
@@ -116,7 +117,9 @@ class TestDomainatorDetector(unittest.TestCase):
         detector = self._create_detector(mock_kafka, mock_ch)
 
         # Test with various 'google.com' subdomains
-        features = detector._get_features(["sub1.google.com", "sub2.google.com", "sub3.google.com"])
+        features = detector._get_features(
+            ["sub1.google.com", "sub2.google.com", "sub3.google.com"]
+        )
 
         # Basic features: label_length, label_max, label_average
         leven_dist = features[0][0]  # Levenshtein distance
@@ -124,7 +127,7 @@ class TestDomainatorDetector(unittest.TestCase):
         lcs = features[0][6]  # Longest common string
 
         self.assertEqual(leven_dist, 0.75)
-        self.assertAlmostEqual(jaro_dist, 0.833, 3) # Rounded to 3 decimal places
+        self.assertAlmostEqual(jaro_dist, 0.833, 3)  # Rounded to 3 decimal places
         self.assertEqual(lcs, 0.75)
 
     def test_get_features_empty_domains(self):
@@ -138,13 +141,25 @@ class TestDomainatorDetector(unittest.TestCase):
         print(features[0][0], features[0][1], features[0][2])
 
         # Basic features
-        self.assertEqual(features[0][0], 1.)  # Levenshtein distance of empty strings is 1
-        self.assertEqual(features[0][1], 1.)  # Jaro distance of empty strings is 1
-        self.assertEqual(features[0][2], 1.)  # Jaro distance on the reverse empty strings is 1
-        self.assertEqual(features[0][3], 1.)  # Jaro-Winkler distance of empty strings is 1
-        self.assertEqual(features[0][4], 1.)  # Jaro-Winkler distance on the reverse empty strings is 1
-        self.assertEqual(features[0][5], 0.)  # Longest common sequence of empty strings is 0
-        self.assertEqual(features[0][6], 0.)  # Longest common string of empty strings is 0
+        self.assertEqual(
+            features[0][0], 1.0
+        )  # Levenshtein distance of empty strings is 1
+        self.assertEqual(features[0][1], 1.0)  # Jaro distance of empty strings is 1
+        self.assertEqual(
+            features[0][2], 1.0
+        )  # Jaro distance on the reverse empty strings is 1
+        self.assertEqual(
+            features[0][3], 1.0
+        )  # Jaro-Winkler distance of empty strings is 1
+        self.assertEqual(
+            features[0][4], 1.0
+        )  # Jaro-Winkler distance on the reverse empty strings is 1
+        self.assertEqual(
+            features[0][5], 0.0
+        )  # Longest common sequence of empty strings is 0
+        self.assertEqual(
+            features[0][6], 0.0
+        )  # Longest common string of empty strings is 0
 
     def test_get_features_single_same_character(self):
         """Test handling of single character domain."""
@@ -155,13 +170,25 @@ class TestDomainatorDetector(unittest.TestCase):
         features = detector._get_features(["a", "a", "a"])
 
         # Basic features
-        self.assertEqual(features[0][0], 1.)  # Levenshtein distance of same strings is 1
-        self.assertEqual(features[0][1], 1.)  # Jaro distance of same strings is 1
-        self.assertEqual(features[0][2], 1.)  # Jaro distance on the reverse same strings is 1
-        self.assertEqual(features[0][3], 1.)  # Jaro-Winkler distance of same strings is 1
-        self.assertEqual(features[0][4], 1.)  # Jaro-Winkler distance on the reverse same strings is 1
-        self.assertEqual(features[0][5], 0.)  # Longest common sequence of same strings is 0
-        self.assertEqual(features[0][6], 0.)  # Longest common string of same strings is 0
+        self.assertEqual(
+            features[0][0], 1.0
+        )  # Levenshtein distance of same strings is 1
+        self.assertEqual(features[0][1], 1.0)  # Jaro distance of same strings is 1
+        self.assertEqual(
+            features[0][2], 1.0
+        )  # Jaro distance on the reverse same strings is 1
+        self.assertEqual(
+            features[0][3], 1.0
+        )  # Jaro-Winkler distance of same strings is 1
+        self.assertEqual(
+            features[0][4], 1.0
+        )  # Jaro-Winkler distance on the reverse same strings is 1
+        self.assertEqual(
+            features[0][5], 0.0
+        )  # Longest common sequence of same strings is 0
+        self.assertEqual(
+            features[0][6], 0.0
+        )  # Longest common string of same strings is 0
 
     def test_get_features_feature_vector_shape(self):
         """Test that the feature vector has the expected shape."""
@@ -169,7 +196,9 @@ class TestDomainatorDetector(unittest.TestCase):
         mock_ch = MagicMock()
         detector = self._create_detector(mock_kafka, mock_ch)
 
-        features = detector._get_features(["test.domain.com", "test.domain.com", "test.domain.com"])
+        features = detector._get_features(
+            ["test.domain.com", "test.domain.com", "test.domain.com"]
+        )
 
         expected_entropy = 7
 
@@ -181,8 +210,12 @@ class TestDomainatorDetector(unittest.TestCase):
         mock_ch = MagicMock()
         detector = self._create_detector(mock_kafka, mock_ch)
 
-        features_upper = detector._get_features(["DRIVE.GOOGLE.COM", "WORKSPACE.GOOGLE.COM"])
-        features_lower = detector._get_features(["drive.google.com", "workspace.google.com"])
+        features_upper = detector._get_features(
+            ["DRIVE.GOOGLE.COM", "WORKSPACE.GOOGLE.COM"]
+        )
+        features_lower = detector._get_features(
+            ["drive.google.com", "workspace.google.com"]
+        )
 
         # The comparison features should be identical regardless of case
         np.testing.assert_array_almost_equal(
