@@ -67,11 +67,17 @@ class TestStart(unittest.IsolatedAsyncioTestCase):
             validation_config={},
         )
 
-    async def test_start_successful_execution(self):
+    @patch("src.logcollector.collector.asyncio.get_event_loop")
+    async def test_start_successful_execution(self, mock_get_event_loop):
         # Arrange
         self.sut.fetch = MagicMock()
+        mock_loop = MagicMock()
+        mock_loop.run_in_executor = AsyncMock(return_value=None)
+        mock_get_event_loop.return_value = mock_loop
+
         await self.sut.start()
-        self.sut.fetch.assert_called_once()
+
+        mock_loop.run_in_executor.assert_awaited_once_with(None, self.sut.fetch)
 
 
 class _StopFetching(RuntimeError):

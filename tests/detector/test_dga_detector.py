@@ -51,7 +51,9 @@ class TestDGADetector(unittest.TestCase):
             DGADetector, "_get_model", return_value=(MagicMock(), MagicMock())
         ):
 
-            detector = DGADetector(detector_config, "test_topic")
+            detector = DGADetector(
+                detector_config, "test_topic", ["test_produce_topic"]
+            )
             detector.model = MagicMock()
             detector.scaler = MagicMock()
             return detector
