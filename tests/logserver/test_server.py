@@ -49,17 +49,25 @@ class TestStart(unittest.IsolatedAsyncioTestCase):
         )
 
     @patch("src.logserver.server.LogServer.fetch_from_kafka")
+    @patch("src.logserver.server.asyncio.get_running_loop")
     @patch("src.logserver.server.ClickHouseKafkaSender")
     async def test_start(
         self,
         mock_clickhouse,
+        mock_get_running_loop,
         mock_fetch_from_kafka,
     ):
+        mock_loop = MagicMock()
+        mock_loop.run_in_executor = AsyncMock(return_value=None)
+        mock_get_running_loop.return_value = mock_loop
+
         # Act
         await self.sut.start()
 
         # Assert
-        mock_fetch_from_kafka.assert_called_once()
+        mock_loop.run_in_executor.assert_awaited_once_with(
+            None, self.sut.fetch_from_kafka
+        )
 
 
 class TestSend(unittest.TestCase):

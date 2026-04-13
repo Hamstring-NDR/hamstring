@@ -25,7 +25,7 @@ class DomainatorDetector(DetectorBase):
     to make predictions about whether a query is likely malicious.
     """
 
-    def __init__(self, detector_config, consume_topic, produce_topics):
+    def __init__(self, detector_config, consume_topic, produce_topics=None):
         """
         Initialize the Domainator detector with configuration parameters.
 
@@ -56,7 +56,7 @@ class DomainatorDetector(DetectorBase):
             if self.model_base_url[-1] == "/"
             else self.model_base_url
         )
-        return f"{self.model_base_url}/files/?p=%2F{self.model}%2F{self.checksum}%2F{self.model}.pickle&dl=1"
+        return f"{self.model_base_url}/files/?p=%2F{self.model_name}%2F{self.checksum}%2F{self.model_name}.pickle&dl=1"
 
     def get_scaler_download_url(self):
         """
@@ -73,7 +73,7 @@ class DomainatorDetector(DetectorBase):
             if self.model_base_url[-1] == "/"
             else self.model_base_url
         )
-        return f"{self.model_base_url}/files/?p=%2F{self.model}%2F{self.checksum}%2Fscaler.pickle&dl=1"
+        return f"{self.model_base_url}/files/?p=%2F{self.model_name}%2F{self.checksum}%2Fscaler.pickle&dl=1"
 
     def predict(self, messages):
         """
@@ -94,7 +94,6 @@ class DomainatorDetector(DetectorBase):
         queries = [message["domain_name"] for message in messages]
 
         y_pred = self.model.predict_proba(self._get_features(queries))
-        print(f"Prediction: {y_pred}")
         return y_pred
 
     def detect(self):

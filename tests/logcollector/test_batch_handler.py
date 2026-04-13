@@ -245,6 +245,7 @@ class TestAddMessage(unittest.TestCase):
 
 class TestSendAllBatches(unittest.TestCase):
     @patch("src.logcollector.batch_handler.logger")
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
     @patch("src.logcollector.batch_handler.ExactlyOnceKafkaProduceHandler")
     @patch("src.logcollector.batch_handler.BufferedBatchSender._send_batch_for_key")
     @patch("src.logcollector.batch_handler.BufferedBatch")
@@ -253,6 +254,7 @@ class TestSendAllBatches(unittest.TestCase):
         mock_buffered_batch,
         mock_send_batch,
         mock_kafka_produce_handler,
+        mock_clickhouse,
         mock_logger,
     ):
         # Arrange
@@ -274,11 +276,16 @@ class TestSendAllBatches(unittest.TestCase):
         mock_send_batch.assert_any_call("key_2")
         self.assertEqual(mock_send_batch.call_count, 2)
 
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
     @patch("src.logcollector.batch_handler.ExactlyOnceKafkaProduceHandler")
     @patch("src.logcollector.batch_handler.BufferedBatchSender._send_batch_for_key")
     @patch("src.logcollector.batch_handler.BufferedBatch")
     def test_send_all_batches_with_one_key(
-        self, mock_buffered_batch, mock_send_batch, mock_kafka_produce_handler
+        self,
+        mock_buffered_batch,
+        mock_send_batch,
+        mock_kafka_produce_handler,
+        mock_clickhouse,
     ):
         # Arrange
         mock_batch_instance = MagicMock()
@@ -298,6 +305,7 @@ class TestSendAllBatches(unittest.TestCase):
         self.assertEqual(mock_send_batch.call_count, 0)
 
     @patch("src.logcollector.batch_handler.logger")
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
     @patch("src.logcollector.batch_handler.ExactlyOnceKafkaProduceHandler")
     @patch("src.logcollector.batch_handler.BufferedBatchSender._send_batch_for_key")
     @patch("src.logcollector.batch_handler.BufferedBatchSender._reset_timer")
@@ -308,6 +316,7 @@ class TestSendAllBatches(unittest.TestCase):
         mock_reset_timer,
         mock_send_batch,
         mock_kafka_produce_handler,
+        mock_clickhouse,
         mock_logger,
     ):
         # Arrange
@@ -330,11 +339,16 @@ class TestSendAllBatches(unittest.TestCase):
         mock_reset_timer.assert_called_once()
         self.assertEqual(mock_send_batch.call_count, 2)
 
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
     @patch("src.logcollector.batch_handler.ExactlyOnceKafkaProduceHandler")
     @patch("src.logcollector.batch_handler.BufferedBatchSender._send_batch_for_key")
     @patch("src.logcollector.batch_handler.BufferedBatch")
     def test_send_all_batches_with_no_keys(
-        self, mock_buffered_batch, mock_send_batch, mock_kafka_produce_handler
+        self,
+        mock_buffered_batch,
+        mock_send_batch,
+        mock_kafka_produce_handler,
+        mock_clickhouse,
     ):
         # Arrange
         mock_batch_instance = MagicMock()
@@ -355,11 +369,16 @@ class TestSendAllBatches(unittest.TestCase):
 
 
 class TestSendBatchForKey(unittest.TestCase):
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
     @patch("src.logcollector.batch_handler.ExactlyOnceKafkaProduceHandler")
     @patch.object(BufferedBatchSender, "_send_data_packet")
     @patch("src.logcollector.batch_handler.BufferedBatch")
     def test_send_batch_for_key_success(
-        self, mock_batch, mock_send_data_packet, mock_produce_handler
+        self,
+        mock_batch,
+        mock_send_data_packet,
+        mock_produce_handler,
+        mock_clickhouse,
     ):
         # Arrange
         mock_batch_instance = MagicMock()
@@ -379,11 +398,16 @@ class TestSendBatchForKey(unittest.TestCase):
         mock_batch_instance.complete_batch.assert_called_once_with(key)
         mock_send_data_packet.assert_called_once_with(key, "mock_data_packet")
 
+    @patch("src.logcollector.batch_handler.ClickHouseKafkaSender")
     @patch("src.logcollector.batch_handler.ExactlyOnceKafkaProduceHandler")
     @patch.object(BufferedBatchSender, "_send_data_packet")
     @patch("src.logcollector.batch_handler.BufferedBatch")
     def test_send_batch_for_key_value_error(
-        self, mock_batch, mock_send_data_packet, mock_produce_handler
+        self,
+        mock_batch,
+        mock_send_data_packet,
+        mock_produce_handler,
+        mock_clickhouse,
     ):
         # Arrange
         mock_batch_instance = MagicMock()

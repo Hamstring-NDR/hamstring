@@ -61,7 +61,7 @@ class DetectorAbstractBase(ABC):  # pragma: no cover
     """
 
     @abstractmethod
-    def __init__(self, detector_config, consume_topic, produce_topics) -> None:
+    def __init__(self, detector_config, consume_topic, produce_topics=None) -> None:
         pass
 
     @abstractmethod
@@ -89,7 +89,7 @@ class DetectorBase(DetectorAbstractBase):
     that provide model-specific prediction logic.
     """
 
-    def __init__(self, detector_config, consume_topic, produce_topics) -> None:
+    def __init__(self, detector_config, consume_topic, produce_topics=None) -> None:
         """
         Initialize the detector with configuration and Kafka topic settings.
 
@@ -103,12 +103,18 @@ class DetectorBase(DetectorAbstractBase):
         """
 
         self.name = detector_config["name"]
-        self.model = detector_config["model"]
+        self.model_name = detector_config["model"]
+        self.model = self.model_name
         self.checksum = detector_config["checksum"]
         self.threshold = detector_config["threshold"]
 
         self.consume_topic = consume_topic
-        self.produce_topics = produce_topics
+        if produce_topics is None:
+            self.produce_topics = [f"{PRODUCE_TOPIC_PREFIX}-generic"]
+        elif isinstance(produce_topics, str):
+            self.produce_topics = [produce_topics]
+        else:
+            self.produce_topics = produce_topics
         self.suspicious_batch_id = None
         self.key = None
         self.messages = []
@@ -116,14 +122,14 @@ class DetectorBase(DetectorAbstractBase):
         self.begin_timestamp = None
         self.end_timestamp = None
         self.model_path = os.path.join(
-            tempfile.gettempdir(), f"{self.model}_{self.checksum}_model.pickle"
+            tempfile.gettempdir(), f"{self.model_name}_{self.checksum}_model.pickle"
         )
         self.scaler_path = os.path.join(
-            tempfile.gettempdir(), f"{self.model}_{self.checksum}_scaler.pickle"
+            tempfile.gettempdir(), f"{self.model_name}_{self.checksum}_scaler.pickle"
         )
 
         self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(self.consume_topic)
-        self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()
+        self.kafka_produce_handler = None
 
         self.model, self.scaler = self._get_model()
 
@@ -261,23 +267,26 @@ class DetectorBase(DetectorAbstractBase):
             WrongChecksum: If the downloaded model's checksum doesn't match the expected value.
             requests.HTTPError: If there's an error downloading the model.
         """
-        logger.info(f"Get model: {self.model} with checksum {self.checksum}")
-        # if not os.path.isfile(self.model_path):
-        model_download_url = self.get_model_download_url()
-        logger.info(
-            f"downloading model {self.model} from {model_download_url} with checksum {self.checksum}"
-        )
-        response = requests.get(model_download_url)
-        response.raise_for_status()
-        with open(self.model_path, "wb") as f:
-            f.write(response.content)
-        # Handle optional scaler
+        logger.info(f"Get model: {self.model_name} with checksum {self.checksum}")
         scaler_download_url = self.get_scaler_download_url()
-        if scaler_download_url:
+
+        if not os.path.isfile(self.model_path):
+            model_download_url = self.get_model_download_url()
+            logger.info(
+                f"downloading model {self.model_name} from {model_download_url} with checksum {self.checksum}"
+            )
+            response = requests.get(model_download_url)
+            response.raise_for_status()
+            with open(self.model_path, "wb") as f:
+                f.write(response.content)
+
+        if scaler_download_url and not os.path.isfile(self.scaler_path):
             scaler_response = requests.get(scaler_download_url)
             scaler_response.raise_for_status()
             with open(self.scaler_path, "wb") as f:
                 f.write(scaler_response.content)
+
+        if scaler_download_url:
             with open(self.scaler_path, "rb") as input_file:
                 scaler = pickle.load(input_file)
         else:
@@ -367,6 +376,9 @@ class DetectorBase(DetectorAbstractBase):
             }
 
             logger.info(f"Producing alert to Kafka: {alert}")
+
+            if self.kafka_produce_handler is None:
+                self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()
 
             for topic in self.produce_topics:
                 self.kafka_produce_handler.produce(

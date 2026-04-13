@@ -56,7 +56,9 @@ class TestDomainatorDetector(unittest.TestCase):
             DomainatorDetector, "_get_model", return_value=(MagicMock(), MagicMock())
         ):
 
-            detector = DomainatorDetector(detector_config, "test_topic")
+            detector = DomainatorDetector(
+                detector_config, "test_topic", ["test_produce_topic"]
+            )
             detector.model = MagicMock()
             detector.scaler = MagicMock()
             return detector
@@ -69,7 +71,7 @@ class TestDomainatorDetector(unittest.TestCase):
         # overwrite model here again to not interefere with other tests when using it globally
         detector.model = "rf"
         self.maxDiff = None
-        expected_url = "https://ajknqwjdnkjnkjnsakjdnkjsandkndkjwndjksnkakndw.de/d/0d5cbcbe16cd46a58021/files/?p=%2Frf%2Fcedf2d892c073c590df5cb2b2bb09b419bd1650d7cd40a66e231b19b8c0a9cde%2Frf.pickle&dl=1"
+        expected_url = "https://ajknqwjdnkjnkjnsakjdnkjsandkndkjwndjksnkakndw.de/d/0d5cbcbe16cd46a58021/files/?p=%2Frf%2F9d86d66b4976c9b325bed0934a9a9eb3a20960b08be9afe491454624cc0aaa6c%2Frf.pickle&dl=1"
         self.assertEqual(detector.get_model_download_url(), expected_url)
 
     def test_detect(self):
@@ -104,7 +106,7 @@ class TestDomainatorDetector(unittest.TestCase):
 
         # Verify the argument was correct
         called_features = detector.model.predict_proba.call_args[0][0]
-        expected_features = detector._get_features("google.com")
+        expected_features = detector._get_features(["google.com", "google.com"])
         np.testing.assert_array_equal(called_features, expected_features)
 
         # Verify prediction result
@@ -137,8 +139,6 @@ class TestDomainatorDetector(unittest.TestCase):
         detector = self._create_detector(mock_kafka, mock_ch)
 
         features = detector._get_features(["", "", "", ""])
-
-        print(features[0][0], features[0][1], features[0][2])
 
         # Basic features
         self.assertEqual(
