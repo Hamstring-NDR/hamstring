@@ -20,6 +20,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PIPELINE_PAT }}
+          fetch-depth: 0
 
       - name: Detect source branch and bump version
         id: bump
