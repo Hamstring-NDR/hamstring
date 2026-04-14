@@ -1,8 +1,8 @@
 name: Publish Docker Images (main)
 
-# Triggers on direct pushes to 'main', which includes PR/merge-commit merges.
 on:
-  push:
+  pull_request_target:
+    types: [ closed ]
     branches: [ "main" ]
 
 env:
@@ -11,41 +11,48 @@ env:
 jobs:
   bump-version:
     name: Bump VERSION file
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     permissions:
       contents: write   # needed to push back VERSION + Git tag
     outputs:
       new_version: ${{ steps.bump.outputs.version }}
+      version_changed: ${{ steps.bump.outputs.changed }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.PIPELINE_PAT }}
+          ref: ${{ github.event.pull_request.base.ref }}
           fetch-depth: 0
 
       - name: Detect source branch and bump version
         id: bump
         run: |
-          # ── Detect source branch from merge commit subject ──────────────────
-          # Standard merge commit message: "Merge branch 'feature/foo' into main"
-          MERGE_SUBJECT="$(git log --merges -1 --pretty=%s HEAD)"
-          echo "Merge subject: ${MERGE_SUBJECT}"
-
-          SOURCE=$(echo "$MERGE_SUBJECT" | sed -n "s/Merge branch '\([^']*\)'.*/\1/p")
-          SOURCE="${SOURCE#origin/}"   # strip remote prefix if present
+          SOURCE="${{ github.event.pull_request.head.ref }}"
 
           if [[ -z "$SOURCE" ]]; then
             SOURCE="unknown"
-            echo "::warning::Could not detect source branch; defaulting to 'unknown' (no bump)."
+            echo "::warning::Could not detect source branch from pull request metadata; defaulting to 'unknown' (no bump)."
           fi
           echo "Detected source branch: ${SOURCE}"
 
           # ── Read and parse current VERSION ──────────────────────────────────
           RAW="$(cat VERSION | tr -d '[:space:]')"
-          CLEAN="${RAW#v}"        # strip leading v
-          CLEAN="${CLEAN%-dev}"   # strip any existing -dev suffix
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$CLEAN"
+          CLEAN="${RAW#v}"   # strip leading v
+          while [[ "$CLEAN" == *-dev ]]; do
+            CLEAN="${CLEAN%-dev}"
+          done
+
+          if [[ ! "$CLEAN" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            echo "::error::VERSION must be in the form v<major>.<minor>.<patch>[-dev], got '${RAW}'"
+            exit 1
+          fi
+
+          MAJOR="${BASH_REMATCH[1]}"
+          MINOR="${BASH_REMATCH[2]}"
+          PATCH="${BASH_REMATCH[3]}"
 
           # ── Decide bump strategy ─────────────────────────────────────────────
           # When the source branch is 'dev', the version was already incremented
@@ -74,23 +81,38 @@ jobs:
           echo "${NEW_VERSION}" > VERSION
 
           echo "version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+          if [[ "$RAW" != "$NEW_VERSION" ]]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
           echo "New version: ${NEW_VERSION}"
 
       - name: Commit and push updated VERSION
+        if: steps.bump.outputs.changed == 'true'
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add VERSION
+          if git diff --cached --quiet; then
+            echo "No VERSION changes to commit."
+            exit 0
+          fi
           git commit -m "chore: release ${{ steps.bump.outputs.version }} [skip ci]"
           git push
 
       - name: Create and push Git release tag
         run: |
+          if git rev-parse -q --verify "refs/tags/${{ steps.bump.outputs.version }}" >/dev/null 2>&1; then
+            echo "Tag '${{ steps.bump.outputs.version }}' already exists; skipping."
+            exit 0
+          fi
           git tag "${{ steps.bump.outputs.version }}"
           git push origin "${{ steps.bump.outputs.version }}"
 
   build-and-push:
     name: Build & Push ${{ matrix.container }}
+    if: github.event.pull_request.merged == true
     needs: bump-version
     runs-on: ubuntu-latest
     strategy:
@@ -113,7 +135,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: main   # pick up the commit that includes the updated VERSION
+          ref: ${{ github.event.pull_request.base.ref }}
 
       - name: Derive partial version tags
         id: version
