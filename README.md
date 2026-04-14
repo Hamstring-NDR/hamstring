@@ -43,16 +43,13 @@
     <a href="https://github.com/hamstring-ndr/hamstring/actions/workflows/build_test_macos.yml">
     <img src="https://img.shields.io/github/actions/workflow/status/hamstring-ndr/hamstring/build_test_macos.yml?branch=main&logo=apple&style=for-the-badge&label=macos" alt="MacOS WorkFlows" />
     </a>
-    <a href="https://github.com/hamstring-ndr/hamstring/actions/workflows/build_test_windows.yml">
-    <img src="https://img.shields.io/github/actions/workflow/status/hamstring-ndr/hamstring/build_test_windows.yml?branch=main&logo=windows&style=for-the-badge&label=windows" alt="Windows WorkFlows" />
-    </a>
   </td>
 </tr>
 </table>
 
 ## About the Project
 
-![Pipeline overview](./assets/heidgaf_architecture.svg)
+![Pipeline overview](./assets/hamstring_architecture.svg)
 
 ## Getting Started
 
@@ -60,16 +57,15 @@
 ```sh
 HOST_IP=127.0.0.1 docker compose -f docker/docker-compose.yml --profile prod up
 ```
-<p align="center">
-  <img src="https://raw.githubusercontent.com/hamstring-ndr/hamstring/main/assets/terminal_example.gif?raw=true" alt="Terminal example"/>
-</p>
-
 #### Use the dev profile for testing out changes in docker containers:
 ```sh
 HOST_IP=127.0.0.1 docker compose -f docker/docker-compose.yml --profile dev up
 ```
+<p align="center">
+  <img src="./assets/hamstring_terminal.gif" alt="Terminal example"/>
+</p>
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 
 
 
@@ -85,7 +81,7 @@ possibly infrastructure.
 
 The section `pipeline.log_collection.collector.logline_format` has to be adjusted to reflect your specific input log
 line format. Using our adjustable and flexible log line configuration, you can rename, reorder and fully configure each
-field of a valid log line. Freely define timestamps, RegEx patterns, lists, and IP addresses. For example, your
+field of a valid log line. You can freely define timestamps, RegEx patterns, lists, and IP addresses. For example, your
 configuration might look as follows:
 
 ```yml
@@ -187,24 +183,11 @@ Have a look at the following pictures showing examples of how these dashboards m
 
 </details>
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 ## Models and Training
-
-To train and test our and possibly your own models, we currently rely on the following datasets:
-
-- [DGTA Benchmark](https://data.mendeley.com/datasets/2wzf9bz7xr/1)
-- [DNS Tunneling Queries for Binary Classification](https://data.mendeley.com/datasets/mzn9hvdcxg/1)
-- [UMUDGA - University of Murcia Domain Generation Algorithm Dataset](https://data.mendeley.com/datasets/y8ph45msv8/1)
-- [DGArchive](https://dgarchive.caad.fkie.fraunhofer.de/)
-- [DNS Exfiltration](https://data.mendeley.com/datasets/c4n7fckkz3/3)
-
-We compute all features separately and only rely on the `domain` and `class` for binary classification.
 
 ### Inserting Data for Testing
 
-For testing purposes, you can ingest PCAPs or tap on network interfaces using the zeek-based sensor in its `1.0.0` release. For more information on it, please refer to [the documentation](https://github.com/Hamstring-NDR/hamstring-zeek).
+For testing purposes, you can ingest PCAPs or tap on network interfaces using the zeek-based sensor that is integrated into the docker-compose file. For more information on the sensor, please refer to [the documentation](https://github.com/Hamstring-NDR/hamstring-zeek).
 
 ### Training Your Own Models
 
@@ -260,33 +243,6 @@ The results will be saved per default to `./results`, if not configured otherwis
 ```
 This will create a `rules.txt` file containing the innards of the model, explaining the rules it created.
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-### Data
-
-> [!IMPORTANT]
-> We support custom schemes.
-
-Depending on your data and usecase, you can customize the data scheme to fit your needs.
-The below configuration is part of the [main configuration file](./config.yaml) which is detailed in our [documentation](https://HAMSTRING.readthedocs.io/en/latest/usage.html#id2)
-
-```yml
-loglines:
-  fields:
-    - [ "timestamp", RegEx, '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$' ]
-    - [ "status_code", ListItem, [ "NOERROR", "NXDOMAIN" ], [ "NXDOMAIN" ] ]
-    - [ "src_ip", IpAddress ]
-    - [ "dns_server_ip", IpAddress ]
-    - [ "domain_name", RegEx, '^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$' ]
-    - [ "record_type", ListItem, [ "A", "AAAA" ] ]
-    - [ "response_ip", IpAddress ]
-    - [ "size", RegEx, '^\d+b$' ]
-```
-
-
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- CONTRIBUTING -->
 ## Contributing
@@ -305,15 +261,11 @@ Don't forget to give the project a star! Thanks again!
 </a>
 
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
 <!-- LICENSE -->
 
 ## License
 
 Distributed under the EUPL License. See `LICENSE.txt` for more information.
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
 <!-- MARKDOWN LINKS & IMAGES -->
