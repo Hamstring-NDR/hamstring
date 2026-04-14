@@ -5,9 +5,11 @@ parts of which are similar to the code in this module.
 """
 
 import ast
+import json
 import os
 import sys
 import time
+import uuid
 from abc import abstractmethod
 from typing import Optional
 
@@ -24,6 +26,7 @@ sys.path.append(os.getcwd())
 from src.base.data_classes.batch import Batch
 from src.base.log_config import get_logger
 from src.base.utils import kafka_delivery_report, setup_config
+import uuid
 
 logger = get_logger()
 
@@ -130,13 +133,17 @@ class SimpleKafkaProduceHandler(KafkaProduceHandler):
         automatically configured from the global KAFKA_BROKERS setting.
         """
         self.brokers = ",".join(
-            [f"{broker['hostname']}:{broker['port']}" for broker in KAFKA_BROKERS]
+            [
+                f"{broker['hostname']}:{broker['internal_port']}"
+                for broker in KAFKA_BROKERS
+            ]
         )
 
         conf = {
             "bootstrap.servers": self.brokers,
             "enable.idempotence": False,
             "acks": "1",
+            "message.max.bytes": 1000000000,
         }
 
         super().__init__(conf)
@@ -160,7 +167,6 @@ class SimpleKafkaProduceHandler(KafkaProduceHandler):
         """
         if not data:
             return
-
         self.producer.flush()
         self.producer.produce(
             topic=topic,
@@ -195,13 +201,17 @@ class ExactlyOnceKafkaProduceHandler(KafkaProduceHandler):
             KafkaException: If transaction initialization fails.
         """
         self.brokers = ",".join(
-            [f"{broker['hostname']}:{broker['port']}" for broker in KAFKA_BROKERS]
+            [
+                f"{broker['hostname']}:{broker['internal_port']}"
+                for broker in KAFKA_BROKERS
+            ]
         )
 
         conf = {
             "bootstrap.servers": self.brokers,
-            "transactional.id": HOSTNAME,
+            "transactional.id": f"{HOSTNAME}-{uuid.uuid4()}",
             "enable.idempotence": True,
+            "message.max.bytes": 1000000000,
         }
 
         super().__init__(conf)
@@ -239,9 +249,11 @@ class ExactlyOnceKafkaProduceHandler(KafkaProduceHandler):
             )
 
             self.commit_transaction_with_retry()
-        except Exception:
+        except Exception as e:
+            logger.info(f"aborted for topic {topic}")
             self.producer.abort_transaction()
             logger.error("Transaction aborted.")
+            logger.error(e)
             raise
 
     def commit_transaction_with_retry(
@@ -316,13 +328,16 @@ class KafkaConsumeHandler(KafkaHandler):
 
         # get brokers
         self.brokers = ",".join(
-            [f"{broker['hostname']}:{broker['port']}" for broker in KAFKA_BROKERS]
+            [
+                f"{broker['hostname']}:{broker['internal_port']}"
+                for broker in KAFKA_BROKERS
+            ]
         )
 
         # create consumer
         conf = {
             "bootstrap.servers": self.brokers,
-            "group.id": CONSUMER_GROUP_ID,
+            "group.id": f"{CONSUMER_GROUP_ID}",
             "enable.auto.commit": False,
             "auto.offset.reset": "earliest",
             "enable.partition.eof": True,
@@ -386,7 +401,7 @@ class KafkaConsumeHandler(KafkaHandler):
             return None, {}
 
         try:
-            eval_data = ast.literal_eval(value)
+            eval_data = json.loads(value)
 
             if isinstance(eval_data, dict):
                 return key, eval_data
@@ -437,6 +452,37 @@ class KafkaConsumeHandler(KafkaHandler):
         if self.consumer:
             self.consumer.close()
 
+    @staticmethod
+    def _is_dicts(obj):
+        return isinstance(obj, list) and all(isinstance(item, dict) for item in obj)
+
+    def consume_as_object(self) -> tuple[None | str, Batch]:
+        """
+        Consumes available messages on the specified topic. Decodes the data and converts it to a Batch
+        object. Returns the Batch object.
+
+        Returns:
+            Consumed data as Batch object
+
+        Raises:
+            ValueError: Invalid data format
+        """
+        key, value, topic = self.consume()
+        if not key and not value:
+            # TODO: Change return value to fit the type, maybe switch to raise
+            return None, {}
+        eval_data: dict = json.loads(value)
+        if self._is_dicts(eval_data.get("data")):
+            eval_data["data"] = eval_data.get("data")
+        else:
+            eval_data["data"] = [json.loads(item) for item in eval_data.get("data")]
+        batch_schema = marshmallow_dataclass.class_schema(Batch)()
+        eval_data: Batch = batch_schema.load(eval_data)
+        if isinstance(eval_data, Batch):
+            return key, eval_data
+        else:
+            raise ValueError("Unknown data format.")
+
 
 class SimpleKafkaConsumeHandler(KafkaConsumeHandler):
     """Simple Kafka Consumer wrapper without Write-Exactly-Once semantics
@@ -486,7 +532,6 @@ class SimpleKafkaConsumeHandler(KafkaConsumeHandler):
 
                     empty_data_retrieved = True
                     continue
-
                 if msg.error():
                     if msg.error().code() == KafkaError._PARTITION_EOF:
                         continue
@@ -498,7 +543,6 @@ class SimpleKafkaConsumeHandler(KafkaConsumeHandler):
                 key = msg.key().decode("utf-8") if msg.key() else None
                 value = msg.value().decode("utf-8") if msg.value() else None
                 topic = msg.topic() if msg.topic() else None
-
                 return key, value, topic
         except KeyboardInterrupt:
             logger.info("Stopping KafkaConsumeHandler...")
@@ -571,55 +615,55 @@ class ExactlyOnceKafkaConsumeHandler(KafkaConsumeHandler):
         except KeyboardInterrupt:
             logger.info("Shutting down KafkaConsumeHandler...")
 
-    @staticmethod
-    def _is_dicts(obj):
-        """Check if the provided object is a list containing only dictionaries.
+    # @staticmethod
+    # def _is_dicts(obj):
+    #     """Check if the provided object is a list containing only dictionaries.
 
-        Args:
-            obj: Object to check.
+    #     Args:
+    #         obj: Object to check.
 
-        Returns:
-            bool: True if obj is a list of dictionaries, False otherwise.
-        """
-        return isinstance(obj, list) and all(isinstance(item, dict) for item in obj)
+    #     Returns:
+    #         bool: True if obj is a list of dictionaries, False otherwise.
+    #     """
+    #     return isinstance(obj, list) and all(isinstance(item, dict) for item in obj)
 
-    def consume_as_object(self) -> tuple[Optional[str], Batch]:
-        """
-        Consume messages and return them as Batch objects.
+    # def consume_as_object(self) -> tuple[Optional[str], Batch]:
+    #     """
+    #     Consume messages and return them as Batch objects.
 
-        Consumes available messages from subscribed topics, decodes the data,
-        and converts it to a structured Batch object using marshmallow schema
-        validation. This method provides type-safe message consumption.
+    #     Consumes available messages from subscribed topics, decodes the data,
+    #     and converts it to a structured Batch object using marshmallow schema
+    #     validation. This method provides type-safe message consumption.
 
-        Returns:
-            tuple[Optional[str], Batch]: A tuple containing:
-                - Message key (str or None).
-                - Batch object containing the deserialized message data.
+    #     Returns:
+    #         tuple[Optional[str], Batch]: A tuple containing:
+    #             - Message key (str or None).
+    #             - Batch object containing the deserialized message data.
 
-        Raises:
-            ValueError: If the message data format is invalid or cannot be
-                        converted to a Batch object.
-            marshmallow.ValidationError: If data doesn't conform to Batch schema.
-        """
-        key, value, topic = self.consume()
+    #     Raises:
+    #         ValueError: If the message data format is invalid or cannot be
+    #                     converted to a Batch object.
+    #         marshmallow.ValidationError: If data doesn't conform to Batch schema.
+    #     """
+    #     key, value, topic = self.consume()
 
-        if not key and not value:
-            # TODO: Change return value to fit the type, maybe switch to raise
-            return None, {}
+    #     if not key and not value:
+    #         # TODO: Change return value to fit the type, maybe switch to raise
+    #         return None, {}
 
-        eval_data: dict = ast.literal_eval(value)
+    #     eval_data: dict = ast.literal_eval(value)
 
-        if self._is_dicts(eval_data.get("data")):
-            eval_data["data"] = eval_data.get("data")
-        else:
-            eval_data["data"] = [
-                ast.literal_eval(item) for item in eval_data.get("data")
-            ]
+    #     if self._is_dicts(eval_data.get("data")):
+    #         eval_data["data"] = eval_data.get("data")
+    #     else:
+    #         eval_data["data"] = [
+    #             ast.literal_eval(item) for item in eval_data.get("data")
+    #         ]
 
-        batch_schema = marshmallow_dataclass.class_schema(Batch)()
-        eval_data: Batch = batch_schema.load(eval_data)
+    #     batch_schema = marshmallow_dataclass.class_schema(Batch)()
+    #     eval_data: Batch = batch_schema.load(eval_data)
 
-        if isinstance(eval_data, Batch):
-            return key, eval_data
-        else:
-            raise ValueError("Unknown data format.")
+    #     if isinstance(eval_data, Batch):
+    #         return key, eval_data
+    #     else:
+    #         raise ValueError("Unknown data format.")

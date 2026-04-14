@@ -5,17 +5,19 @@ import os
 import pickle
 import sys
 import tempfile
-
-import math
+import asyncio
 import numpy as np
 import requests
 from numpy import median
+from abc import ABC, abstractmethod
+import importlib
 
 sys.path.append(os.getcwd())
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
-from src.base.utils import setup_config
+from src.base.utils import setup_config, generate_collisions_resistant_uuid
 from src.base.kafka_handler import (
     ExactlyOnceKafkaConsumeHandler,
+    ExactlyOnceKafkaProduceHandler,
     KafkaMessageFetchException,
 )
 from src.base.log_config import get_logger
@@ -26,13 +28,18 @@ logger = get_logger(module_name)
 BUF_SIZE = 65536  # let's read stuff in 64kb chunks!
 
 config = setup_config()
-MODEL = config["pipeline"]["data_analysis"]["detector"]["model"]
-CHECKSUM = config["pipeline"]["data_analysis"]["detector"]["checksum"]
-MODEL_BASE_URL = config["pipeline"]["data_analysis"]["detector"]["base_url"]
-THRESHOLD = config["pipeline"]["data_analysis"]["detector"]["threshold"]
-CONSUME_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
+INSPECTORS = config["pipeline"]["data_inspection"]
+DETECTORS = config["pipeline"]["data_analysis"]
+
+
+CONSUME_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"][
     "inspector_to_detector"
 ]
+PRODUCE_TOPIC_PREFIX = config["environment"]["kafka_topics_prefix"]["pipeline"][
+    "detector_to_alerter"
+]
+
+PLUGIN_PATH = "src.detector.plugins"
 
 
 class WrongChecksum(Exception):  # pragma: no cover
@@ -41,16 +48,73 @@ class WrongChecksum(Exception):  # pragma: no cover
     pass
 
 
-class Detector:
-    """Main component of the Data Analysis stage to perform anomaly detection
+class DetectorAbstractBase(ABC):  # pragma: no cover
+    """
+    Abstract base class for all detector implementations.
 
-    Processes suspicious batches from the Inspector using configurable ML models to classify
-    DNS requests as benign or malicious. Downloads and validates models from a remote server,
-    extracts features from domain names, calculates probability scores, and generates alerts
-    when malicious requests are detected above the configured threshold.
+    This class defines the interface that all concrete detector implementations must follow.
+    It provides the essential methods that need to be implemented for a detector to function
+    within the pipeline.
+
+    Subclasses must implement all abstract methods to ensure proper integration with the
+    detection system.
     """
 
-    def __init__(self) -> None:
+    @abstractmethod
+    def __init__(self, detector_config, consume_topic, produce_topics=None) -> None:
+        pass
+
+    @abstractmethod
+    def get_model_download_url(self):
+        pass
+
+    @abstractmethod
+    def get_scaler_download_url(self):
+        pass
+
+    @abstractmethod
+    def predict(self, message) -> np.ndarray:
+        pass
+
+
+class DetectorBase(DetectorAbstractBase):
+    """
+    Base implementation for detectors in the pipeline.
+
+    This class provides a concrete implementation of the detector interface with
+    common functionality shared across all detector types. It handles model
+    management, data processing, Kafka communication, and result reporting.
+
+    The class is designed to be extended by specific detector implementations
+    that provide model-specific prediction logic.
+    """
+
+    def __init__(self, detector_config, consume_topic, produce_topics=None) -> None:
+        """
+        Initialize the detector with configuration and Kafka topic settings.
+
+        Sets up all necessary components including model loading, Kafka handlers,
+        and database connections.
+
+        Args:
+            detector_config (dict): Configuration dictionary containing detector-specific
+                parameters such as name, model, checksum, and threshold.
+            consume_topic (str): Kafka topic from which the detector will consume messages.
+        """
+
+        self.name = detector_config["name"]
+        self.model_name = detector_config["model"]
+        self.model = self.model_name
+        self.checksum = detector_config["checksum"]
+        self.threshold = detector_config["threshold"]
+
+        self.consume_topic = consume_topic
+        if produce_topics is None:
+            self.produce_topics = [f"{PRODUCE_TOPIC_PREFIX}-generic"]
+        elif isinstance(produce_topics, str):
+            self.produce_topics = [produce_topics]
+        else:
+            self.produce_topics = produce_topics
         self.suspicious_batch_id = None
         self.key = None
         self.messages = []
@@ -58,17 +122,19 @@ class Detector:
         self.begin_timestamp = None
         self.end_timestamp = None
         self.model_path = os.path.join(
-            tempfile.gettempdir(), f"{MODEL}_{CHECKSUM}_model.pickle"
+            tempfile.gettempdir(), f"{self.model_name}_{self.checksum}_model.pickle"
         )
         self.scaler_path = os.path.join(
-            tempfile.gettempdir(), f"{MODEL}_{CHECKSUM}_scaler.pickle"
+            tempfile.gettempdir(), f"{self.model_name}_{self.checksum}_scaler.pickle"
         )
 
-        self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(CONSUME_TOPIC)
+        self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(self.consume_topic)
+        self.kafka_produce_handler = None
 
         self.model, self.scaler = self._get_model()
 
         # databases
+        self.batch_tree = ClickHouseKafkaSender("batch_tree")
         self.suspicious_batch_timestamps = ClickHouseKafkaSender(
             "suspicious_batch_timestamps"
         )
@@ -86,11 +152,15 @@ class Detector:
         )
 
     def get_and_fill_data(self) -> None:
-        """Consumes suspicious batches from Kafka and stores them for analysis.
+        """
+        Consume data from Kafka and store it for processing.
 
-        Fetches suspicious batch data from the Inspector via Kafka and stores it in internal
-        data structures. If the Detector is already busy processing data, consumption is
-        skipped with a warning. Updates database entries for monitoring and logging purposes.
+        This method retrieves messages from the Kafka topic, processes them, and
+        prepares the data for detection. It handles batch management, timestamp
+        tracking, and database updates for monitoring purposes.
+
+        The method also manages the flow of data through the pipeline by updating
+        relevant database tables with processing status and metrics.
         """
         if self.messages:
             logger.warning(
@@ -98,25 +168,37 @@ class Detector:
                 "current workload."
             )
             return
-
         key, data = self.kafka_consume_handler.consume_as_object()
-
         if data.data:
+            self.parent_row_id = data.batch_tree_row_id
             self.suspicious_batch_id = data.batch_id
             self.begin_timestamp = data.begin_timestamp
             self.end_timestamp = data.end_timestamp
             self.messages = data.data
             self.key = key
-
         self.suspicious_batch_timestamps.insert(
             dict(
                 suspicious_batch_id=self.suspicious_batch_id,
-                client_ip=key,
+                src_ip=key,
                 stage=module_name,
+                instance_name=self.name,
                 status="in_process",
                 timestamp=datetime.datetime.now(),
                 is_active=True,
                 message_count=len(self.messages),
+            )
+        )
+        row_id = generate_collisions_resistant_uuid()
+
+        self.batch_tree.insert(
+            dict(
+                batch_row_id=row_id,
+                stage=module_name,
+                instance_name=self.name,
+                status="in_process",
+                timestamp=datetime.datetime.now(),
+                parent_batch_row_id=self.parent_row_id,
+                batch_id=self.suspicious_batch_id,
             )
         )
 
@@ -141,13 +223,17 @@ class Detector:
             )
 
     def _sha256sum(self, file_path: str) -> str:
-        """Calculates SHA256 checksum for model file validation.
+        """
+        Calculate the SHA256 checksum of a file.
+
+        This utility method reads a file in chunks and computes its SHA256 hash,
+        which is used for model integrity verification.
 
         Args:
-            file_path (str): Path to the model file to validate.
+            file_path (str): Path to the file for which the checksum should be calculated.
 
         Returns:
-            str: SHA256 hexadecimal digest of the file.
+            str: Hexadecimal string representation of the SHA256 checksum.
         """
         h = hashlib.sha256()
 
@@ -162,213 +248,148 @@ class Detector:
         return h.hexdigest()
 
     def _get_model(self):
-        """Downloads and loads ML model and scaler from remote server.
+        """
+        Download and validate the detection model.
 
-        Retrieves the configured model and scaler files from the remote server if not
-        already present locally. Validates model integrity using SHA256 checksum and
-        loads the pickled model and scaler objects for inference.
+        This method handles the model management process:
+        1. Checks if the model already exists locally
+        2. Downloads the model if not present
+        3. Verifies the model's integrity using SHA256 checksum
+        4. Loads the model for use in detection
+
+        The method ensures that only verified models are used for detection to
+        maintain system reliability.
 
         Returns:
-            tuple: Trained ML model and data scaler objects.
+            object: The loaded model object ready for prediction.
 
         Raises:
-            WrongChecksum: If model checksum validation fails.
+            WrongChecksum: If the downloaded model's checksum doesn't match the expected value.
+            requests.HTTPError: If there's an error downloading the model.
         """
-        logger.info(f"Get model: {MODEL} with checksum {CHECKSUM}")
-        if not os.path.isfile(self.model_path):
-            response = requests.get(
-                f"{MODEL_BASE_URL}/files/?p=%2F{MODEL}/{CHECKSUM}/{MODEL}.pickle&dl=1"
-            )
-            logger.info(
-                f"{MODEL_BASE_URL}/files/?p=%2F{MODEL}/{CHECKSUM}/{MODEL}.pickle&dl=1"
-            )
-            response.raise_for_status()
+        logger.info(f"Get model: {self.model_name} with checksum {self.checksum}")
+        scaler_download_url = self.get_scaler_download_url()
 
+        if not os.path.isfile(self.model_path):
+            model_download_url = self.get_model_download_url()
+            logger.info(
+                f"downloading model {self.model_name} from {model_download_url} with checksum {self.checksum}"
+            )
+            response = requests.get(model_download_url)
+            response.raise_for_status()
             with open(self.model_path, "wb") as f:
                 f.write(response.content)
 
-        if not os.path.isfile(self.scaler_path):
-            response = requests.get(
-                f"{MODEL_BASE_URL}/files/?p=%2F{MODEL}/{CHECKSUM}/scaler.pickle&dl=1"
-            )
-            logger.info(
-                f"{MODEL_BASE_URL}/files/?p=%2F{MODEL}/{CHECKSUM}/scaler.pickle&dl=1"
-            )
-            response.raise_for_status()
-
+        if scaler_download_url and not os.path.isfile(self.scaler_path):
+            scaler_response = requests.get(scaler_download_url)
+            scaler_response.raise_for_status()
             with open(self.scaler_path, "wb") as f:
-                f.write(response.content)
+                f.write(scaler_response.content)
 
+        if scaler_download_url:
+            with open(self.scaler_path, "rb") as input_file:
+                scaler = pickle.load(input_file)
+        else:
+            scaler = None
         # Check file sha256
         local_checksum = self._sha256sum(self.model_path)
 
-        if local_checksum != CHECKSUM:
+        if local_checksum != self.checksum:
             logger.warning(
-                f"Checksum {CHECKSUM} SHA256 is not equal with new checksum {local_checksum}!"
+                f"Checksum {self.checksum} SHA256 is not equal with new checksum {local_checksum}!"
             )
             raise WrongChecksum(
-                f"Checksum {CHECKSUM} SHA256 is not equal with new checksum {local_checksum}!"
+                f"Checksum {self.checksum} SHA256 is not equal with new checksum {local_checksum}!"
             )
 
         with open(self.model_path, "rb") as input_file:
             clf = pickle.load(input_file)
 
-        with open(self.scaler_path, "rb") as input_file:
-            scaler = pickle.load(input_file)
-
         return clf, scaler
 
-    def clear_data(self) -> None:
-        """Clears all data from internal data structures.
-
-        Resets messages, timestamps, and warnings to prepare the Detector
-        for processing the next suspicious batch.
+    def detect(self) -> None:
         """
+        Process messages to detect malicious requests.
+
+        This method applies the detection model to each message in the current batch,
+        identifies potential threats based on the model's predictions, and collects
+        warnings for further processing.
+
+        The detection uses a threshold to determine if a prediction indicates
+        malicious activity, and only warnings exceeding this threshold are retained.
+
+        Note:
+            This method relies on the implementation of ``predict``of the rspective subclass
+        """
+        logger.info("Start detecting malicious requests.")
+        for message in self.messages:
+            y_pred = self.predict(message)
+            logger.info(f"Prediction: {y_pred}")
+            # TODO: DO NOT USE if TRUE for prod!!!
+            if (
+                True
+            ):  # np.argmax(y_pred, axis=1) == 1 and y_pred[0][1] > self.threshold:
+                logger.info("Append malicious request to warning.")
+                warning = {
+                    "request": message,
+                    "probability": float(y_pred[0][1]),
+                    # TODO: what is the use of this? not even json serializabel ?
+                    # "model": self.model,
+                    "name": self.name,
+                    "sha256": self.checksum,
+                }
+                self.warnings.append(warning)
+
+    def clear_data(self):
+        """Clears the data in the internal data structures."""
         self.messages = []
         self.begin_timestamp = None
         self.end_timestamp = None
         self.warnings = []
 
-    def _get_features(self, query: str) -> np.ndarray:
-        """Extracts feature vector from domain name for ML model inference.
-
-        Computes various statistical and linguistic features from the domain name
-        including label lengths, character frequencies, entropy measures, and
-        counts of different character types across domain name levels.
-
-        Args:
-            query (str): Domain name string to extract features from.
-
-        Returns:
-            numpy.ndarray: Feature vector ready for ML model prediction.
-        """
-
-        # Splitting by dots to calculate label length and max length
-        query = query.strip(".")
-        label_parts = query.split(".")
-
-        levels = {
-            "fqdn": query,
-            "secondleveldomain": label_parts[-2] if len(label_parts) >= 2 else "",
-            "thirdleveldomain": (
-                ".".join(label_parts[:-2]) if len(label_parts) > 2 else ""
-            ),
-        }
-
-        label_length = len(label_parts)
-        parts = query.split(".")
-        label_max = len(max(parts, key=str)) if parts else 0
-        label_average = len(query)
-
-        basic_features = np.array(
-            [label_length, label_max, label_average], dtype=np.float64
-        )
-
-        alc = "abcdefghijklmnopqrstuvwxyz"
-        query_len = len(query)
-        freq = np.array(
-            [query.lower().count(c) / query_len if query_len > 0 else 0.0 for c in alc],
-            dtype=np.float64,
-        )
-
-        logger.debug("Get full, alpha, special, and numeric count.")
-
-        def calculate_counts(level: str) -> np.ndarray:
-            if not level:
-                return np.array([0.0, 0.0, 0.0, 0.0], dtype=np.float64)
-
-            full_count = len(level) / len(level)
-            alpha_ratio = sum(c.isalpha() for c in level) / len(level)
-            numeric_ratio = sum(c.isdigit() for c in level) / len(level)
-            special_ratio = sum(
-                not c.isalnum() and not c.isspace() for c in level
-            ) / len(level)
-
-            return np.array(
-                [full_count, alpha_ratio, numeric_ratio, special_ratio],
-                dtype=np.float64,
-            )
-
-        fqdn_counts = calculate_counts(levels["fqdn"])
-        third_counts = calculate_counts(levels["thirdleveldomain"])
-        second_counts = calculate_counts(levels["secondleveldomain"])
-
-        level_features = np.hstack([third_counts, second_counts, fqdn_counts])
-
-        def calculate_entropy(s: str) -> float:
-            if len(s) == 0:
-                return 0.0
-            probs = [s.count(c) / len(s) for c in dict.fromkeys(s)]
-            return -sum(p * math.log(p, 2) for p in probs)
-
-        logger.debug("Start entropy calculation")
-        entropy_features = np.array(
-            [
-                calculate_entropy(levels["fqdn"]),
-                calculate_entropy(levels["thirdleveldomain"]),
-                calculate_entropy(levels["secondleveldomain"]),
-            ],
-            dtype=np.float64,
-        )
-
-        logger.debug("Entropy features calculated")
-
-        all_features = np.concatenate(
-            [basic_features, freq, level_features, entropy_features]
-        )
-
-        logger.debug("Finished data transformation")
-
-        return all_features.reshape(1, -1)
-
-    def detect(self) -> None:  # pragma: no cover
-        """Analyzes DNS requests and identifies malicious domains.
-
-        Processes each DNS request in the current batch by extracting features,
-        running ML model prediction, and collecting warnings for requests that
-        exceed the configured maliciousness threshold.
-        """
-        logger.info("Start detecting malicious requests.")
-        for message in self.messages:
-            # TODO predict all messages
-            # TODO use scalar: self.scaler.transform(self._get_features(message["domain_name"]))
-            y_pred = self.model.predict_proba(
-                self._get_features(message["domain_name"])
-            )
-            logger.info(f"Prediction: {y_pred}")
-            if np.argmax(y_pred, axis=1) == 1 and y_pred[0][1] > THRESHOLD:
-                logger.info("Append malicious request to warning.")
-                warning = {
-                    "request": message,
-                    "probability": float(y_pred[0][1]),
-                    "model": MODEL,
-                    "sha256": CHECKSUM,
-                }
-                self.warnings.append(warning)
-
     def send_warning(self) -> None:
-        """Generates and stores alerts for detected malicious requests.
+        """
+        Dispatch detected warnings to the appropriate systems.
 
-        Creates comprehensive alert records from accumulated warnings including
-        overall risk scores, individual predictions, and metadata. Stores alerts
-        in the database and updates batch processing status. If no warnings are
-        present, marks the batch as filtered out.
+        This method handles the reporting of detected threats by:
+        1. Calculating an overall threat score
+        2. Storing detailed warning information
+        3. Updating database records with detection results
+        4. Marking processed loglines with appropriate status
+
+        The method updates multiple database tables to maintain the pipeline's
+        state tracking and provides detailed information about detected threats.
         """
         logger.info("Store alert.")
+        row_id = generate_collisions_resistant_uuid()
         if len(self.warnings) > 0:
             overall_score = median(
                 [warning["probability"] for warning in self.warnings]
             )
-            alert = {"overall_score": overall_score, "result": self.warnings}
+            alert = {
+                "overall_score": overall_score,
+                "result": self.warnings,
+                "src_ip": self.key,
+                "alert_timestamp": datetime.datetime.now().isoformat(),
+                "suspicious_batch_id": str(self.suspicious_batch_id),
+                "detector_name": self.name,
+            }
 
-            logger.info(f"Add alert: {alert}")
-            with open(os.path.join(tempfile.gettempdir(), "warnings.json"), "a+") as f:
-                json.dump(alert, f)
-                f.write("\n")
+            logger.info(f"Producing alert to Kafka: {alert}")
+
+            if self.kafka_produce_handler is None:
+                self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()
+
+            for topic in self.produce_topics:
+                self.kafka_produce_handler.produce(
+                    topic=topic,
+                    data=json.dumps(alert),
+                    key=self.key,
+                )
 
             self.alerts.insert(
                 dict(
-                    client_ip=self.key,
+                    src_ip=self.key,
                     alert_timestamp=datetime.datetime.now(),
                     suspicious_batch_id=self.suspicious_batch_id,
                     overall_score=overall_score,
@@ -382,8 +403,9 @@ class Detector:
             self.suspicious_batch_timestamps.insert(
                 dict(
                     suspicious_batch_id=self.suspicious_batch_id,
-                    client_ip=self.key,
+                    src_ip=self.key,
                     stage=module_name,
+                    instance_name=self.name,
                     status="finished",
                     timestamp=datetime.datetime.now(),
                     is_active=False,
@@ -411,8 +433,9 @@ class Detector:
             self.suspicious_batch_timestamps.insert(
                 dict(
                     suspicious_batch_id=self.suspicious_batch_id,
-                    client_ip=self.key,
+                    src_ip=self.key,
                     stage=module_name,
+                    instance_name=self.name,
                     status="filtered_out",
                     timestamp=datetime.datetime.now(),
                     is_active=False,
@@ -435,6 +458,18 @@ class Detector:
                     )
                 )
 
+        self.batch_tree.insert(
+            dict(
+                batch_row_id=row_id,
+                stage=module_name,
+                instance_name=self.name,
+                status="finished",
+                timestamp=datetime.datetime.now(),
+                parent_batch_row_id=self.parent_row_id,
+                batch_id=self.suspicious_batch_id,
+            )
+        )
+
         self.fill_levels.insert(
             dict(
                 timestamp=datetime.datetime.now(),
@@ -444,52 +479,92 @@ class Detector:
             )
         )
 
+    # TODO: test bootstrap!
+    def bootstrap_detector_instance(self):
+        """
+        Main processing loop for the detector instance.
 
-def main(one_iteration: bool = False) -> None:  # pragma: no cover
-    """Creates and runs the Detector instance in a continuous processing loop.
+        This method implements the core processing loop that continuously:
+        1. Fetches data from Kafka
+        2. Performs detection on the data
+        3. Sends warnings for detected threats
+        4. Handles exceptions and cleanup
 
-    Initializes the Detector and starts the main processing loop that continuously
-    fetches suspicious batches from Kafka, performs malicious domain detection,
-    and generates alerts. Handles various exceptions gracefully and ensures
-    proper cleanup of data structures.
+        The loop continues until interrupted by a keyboard interrupt (Ctrl+C),
+        at which point it performs a graceful shutdown.
 
-    Args:
-        one_iteration (bool): For testing purposes - stops loop after one iteration.
+        Note:
+            This method is designed to run in a dedicated thread or process.
+        """
+        while True:
+            try:
+                logger.debug("Before getting and filling data")
+                self.get_and_fill_data()
+                logger.debug("Inspect Data")
+                self.detect()
+                logger.debug("Send warnings")
+                self.send_warning()
+            except KafkaMessageFetchException as e:  # pragma: no cover
+                logger.debug(e)
+            except IOError as e:
+                logger.error(e)
+                raise e
+            except ValueError as e:
+                logger.debug(e)
+            except KeyboardInterrupt:
+                logger.info("Closing down Detector...")
+                break
+            finally:
+                self.clear_data()
 
-    Raises:
-        KeyboardInterrupt: Execution interrupted by user.
+    async def start(self):  # pragma: no cover
+        """
+        Start the detector instance asynchronously.
+
+        This method sets up the detector to run in an asynchronous execution context,
+        allowing it to operate concurrently with other components in the system.
+        """
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, self.bootstrap_detector_instance)
+
+
+async def main():  # pragma: no cover
     """
-    logger.info("Starting Detector...")
-    detector = Detector()
-    logger.info(f"Detector is running.")
+    Initialize and start all detector instances defined in the configuration.
 
-    iterations = 0
+    This function:
+    1. Reads detector configurations
+    2. Dynamically loads detector classes
+    3. Creates detector instances
+    4. Starts all detectors concurrently
+    """
+    # ensure all detectors configure what to do
+    # instead of doing ensure alert directly we now use alerter topics
 
-    while True:
-        if one_iteration and iterations > 0:
-            break
-        iterations += 1
+    tasks = []
+    for detector_config in DETECTORS:
+        consume_topic = f"{CONSUME_TOPIC_PREFIX}-{detector_config['name']}"
+        produce_topics_str = detector_config.get("produce_topics", "")
+        if produce_topics_str:
+            produce_topics = [
+                f"{PRODUCE_TOPIC_PREFIX}-{t.strip()}"
+                for t in produce_topics_str.split(",")
+            ]
+        else:
+            produce_topics = [f"{PRODUCE_TOPIC_PREFIX}-generic"]
 
-        try:
-            logger.debug("Before getting and filling data")
-            detector.get_and_fill_data()
-            logger.debug("Inspect Data")
-            detector.detect()
-            logger.debug("Send warnings")
-            detector.send_warning()
-        except KafkaMessageFetchException as e:  # pragma: no cover
-            logger.debug(e)
-        except IOError as e:
-            logger.error(e)
-            raise e
-        except ValueError as e:
-            logger.debug(e)
-        except KeyboardInterrupt:
-            logger.info("Closing down Detector...")
-            break
-        finally:
-            detector.clear_data()
+        class_name = detector_config["detector_class_name"]
+        module_name = f"{PLUGIN_PATH}.{detector_config['detector_module_name']}"
+        module = importlib.import_module(module_name)
+        DetectorClass = getattr(module, class_name)
+        detector = DetectorClass(
+            detector_config=detector_config,
+            consume_topic=consume_topic,
+            produce_topics=produce_topics,
+        )
+        tasks.append(asyncio.create_task(detector.start()))
+    await asyncio.gather(*tasks)
 
 
 if __name__ == "__main__":  # pragma: no cover
-    main()
+    asyncio.run(main())

@@ -6,6 +6,11 @@ from typing import List
 import math
 import polars as pl
 
+import numpy as np
+import itertools
+import pylcs
+import Levenshtein
+
 sys.path.append(os.getcwd())
 from src.base.log_config import get_logger
 
@@ -155,3 +160,123 @@ class Processor:
         logger.info("Finished data transformation")
 
         return x
+
+    def transform_domainator(self, x: pl.DataFrame) -> pl.DataFrame:
+        logger.debug("Domainator transform")
+
+        metrics_list = []
+        window_size = 10
+        min_window_size = 3
+
+        x = x.with_columns(
+            pl.concat_str(
+                [pl.col("secondleveldomain"), pl.col("tld")], separator="."
+            ).alias("domain")
+        )
+
+        for user in x["user"].unique():
+            # logger.debug(x.filter(pl.col('user') == user))
+            for domain in x.filter(pl.col("user") == user)["domain"].unique():
+                sub_list = x.filter(
+                    (pl.col("user") == user) & (pl.col("domain") == domain)
+                )["thirdleveldomain"]
+                true_class = x.filter(pl.col("domain") == domain)[
+                    "class"
+                ].unique()  # currently assumes domain is not both malicious and legitimate
+
+                windows = [
+                    sub_list[i : i + window_size]
+                    for i in range(0, len(sub_list), window_size)
+                ]
+
+                if not windows:
+                    windows = sub_list
+
+                for item in windows:
+                    if len(item) > min_window_size:
+                        cartesian = list(itertools.combinations(item, 2))
+
+                        metrics = {
+                            "user": user,
+                            "class": true_class[0],
+                            "query": domain,
+                            "levenshtein": [],
+                            "jaro": [],
+                            "rev_jaro": [],
+                            "jaro_winkler": [],
+                            "rev_jaro_wink": [],
+                            "lcs_seq": [],
+                            "lcs_str": [],
+                        }
+
+                        metrics["levenshtein"] = np.mean(
+                            [
+                                Levenshtein.ratio(product[0], product[1])
+                                for product in cartesian
+                            ]
+                        )
+                        metrics["jaro"] = np.mean(
+                            [
+                                Levenshtein.jaro(product[0], product[1])
+                                for product in cartesian
+                            ]
+                        )
+                        metrics["jaro_winkler"] = np.mean(
+                            [
+                                Levenshtein.jaro_winkler(
+                                    product[0], product[1], prefix_weight=0.2
+                                )
+                                for product in cartesian
+                            ]
+                        )
+                        metrics["rev_jaro"] = np.mean(
+                            [
+                                Levenshtein.jaro(product[0][::-1], product[1][::-1])
+                                for product in cartesian
+                            ]
+                        )
+                        metrics["rev_jaro_wink"] = np.mean(
+                            [
+                                Levenshtein.jaro_winkler(
+                                    product[0][::-1],
+                                    product[1][::-1],
+                                    prefix_weight=0.2,
+                                )
+                                for product in cartesian
+                            ]
+                        )
+
+                        metrics["lcs_seq"] = np.mean(
+                            [
+                                (
+                                    pylcs.lcs_sequence_length(product[0], product[1])
+                                    / ((len(product[0]) + len(product[1])) / 2)
+                                    if len(product[0]) and len(product[1])
+                                    else 0.0
+                                )
+                                for product in cartesian
+                            ]
+                        )
+                        metrics["lcs_str"] = np.mean(
+                            [
+                                (
+                                    pylcs.lcs_string_length(product[0], product[1])
+                                    / ((len(product[0]) + len(product[1])) / 2)
+                                    if len(product[0]) and len(product[1])
+                                    else 0.0
+                                )
+                                for product in cartesian
+                            ]
+                        )
+
+                        metrics_list.append(metrics)
+
+        df = pl.from_dicts(metrics_list)
+
+        logger.debug(df)
+        logger.debug(df["class"].unique())
+
+        df = df.drop(["user"])
+
+        logger.debug("Transform done")
+        return df
