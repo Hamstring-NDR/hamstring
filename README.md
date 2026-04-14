@@ -16,39 +16,35 @@
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
-  <a href="https://github.com/stefanDeveloper/heiDGAF">
-    <img src="https://raw.githubusercontent.com/stefanDeveloper/heiDGAF/main/assets/heidgaf_logo_normal.png?raw=true" alt="Logo">
-  </a>
+    <img src="./assets/hamstring.svg" alt="Logo">
 
-<h3 align="center">heiDGAF - Domain Generation Algorithms Finder</h3>
+<h3 align="center">HAMSTRING</h3>
 
   <p align="center">
-    Machine learning-based DNS classifier for detecting Domain Generation Algorithms (DGAs), tunneling, and data exfiltration by malicious actors.
+    ...
     <br />
-    <a href="https://heidgaf.readthedocs.io/en/latest/"><strong>Explore the docs »</strong></a>
+    <a href="https://hamstring.readthedocs.io/en/latest/"><strong>Explore the docs »</strong></a>
     <br />
     <br />
-    <a href="https://github.com/stefanDeveloper/heiDGAF/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
+    <a href="https://github.com/hamstring-ndr/hamstring/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
     ·
-    <a href="https://github.com/stefanDeveloper/heiDGAF/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
+    <a href="https://github.com/hamstring-ndr/hamstring/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
   </p>
 </div>
 
-> [!CAUTION]
-> This project has been moved to https://github.com/Hamstring-NDR/hamstring. Future development, issues, and releases will be maintained there.
 
 <table>
 <tr>
   <td><b>Continuous Integration</b></td>
   <td>
-    <a href="https://github.com/stefanDeveloper/heiDGAF/actions/workflows/build_test_linux.yml">
-    <img src="https://img.shields.io/github/actions/workflow/status/stefanDeveloper/heiDGAF/build_test_linux.yml?branch=main&logo=linux&style=for-the-badge&label=linux" alt="Linux WorkFlows" />
+    <a href="https://github.com/hamstring-ndr/hamstring/actions/workflows/build_test_linux.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/hamstring-ndr/hamstring/build_test_linux.yml?branch=main&logo=linux&style=for-the-badge&label=linux" alt="Linux WorkFlows" />
     </a>
-    <a href="https://github.com/stefanDeveloper/heiDGAF/actions/workflows/build_test_macos.yml">
-    <img src="https://img.shields.io/github/actions/workflow/status/stefanDeveloper/heiDGAF/build_test_macos.yml?branch=main&logo=apple&style=for-the-badge&label=macos" alt="MacOS WorkFlows" />
+    <a href="https://github.com/hamstring-ndr/hamstring/actions/workflows/build_test_macos.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/hamstring-ndr/hamstring/build_test_macos.yml?branch=main&logo=apple&style=for-the-badge&label=macos" alt="MacOS WorkFlows" />
     </a>
-    <a href="https://github.com/stefanDeveloper/heiDGAF/actions/workflows/build_test_windows.yml">
-    <img src="https://img.shields.io/github/actions/workflow/status/stefanDeveloper/heiDGAF/build_test_windows.yml?branch=main&logo=windows&style=for-the-badge&label=windows" alt="Windows WorkFlows" />
+    <a href="https://github.com/hamstring-ndr/hamstring/actions/workflows/build_test_windows.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/hamstring-ndr/hamstring/build_test_windows.yml?branch=main&logo=windows&style=for-the-badge&label=windows" alt="Windows WorkFlows" />
     </a>
   </td>
 </tr>
@@ -56,42 +52,33 @@
 
 ## About the Project
 
-![Pipeline overview](https://raw.githubusercontent.com/stefanDeveloper/heiDGAF/main/docs/media/heidgaf_overview_detailed.drawio.png?raw=true)
+![Pipeline overview](./assets/heidgaf_architecture.svg)
 
 ## Getting Started
 
-#### Run **heiDGAF** using Docker Compose:
-
+#### Run **HAMSTRING** using Docker Compose:
 ```sh
-HOST_IP=127.0.0.1 docker compose -f docker/docker-compose.yml up
+HOST_IP=127.0.0.1 docker compose -f docker/docker-compose.yml --profile prod up
 ```
 <p align="center">
-  <img src="https://raw.githubusercontent.com/stefanDeveloper/heiDGAF/main/assets/terminal_example.gif?raw=true" alt="Terminal example"/>
+  <img src="https://raw.githubusercontent.com/hamstring-ndr/hamstring/main/assets/terminal_example.gif?raw=true" alt="Terminal example"/>
 </p>
 
-#### Or run the modules locally on your machine:
+#### Use the dev profile for testing out changes in docker containers:
 ```sh
-python -m venv .venv
-source .venv/bin/activate
-
-sh install_requirements.sh
-```
-Alternatively, you can use `pip install` and enter all needed requirements individually with `-r requirements.*.txt`.
-
-Now, you can start each stage, e.g. the inspector:
-
-```sh
-python src/inspector/inspector.py
+HOST_IP=127.0.0.1 docker compose -f docker/docker-compose.yml --profile dev up
 ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
 
 
 ## Usage
 
 ### Configuration
 
-To configure **heiDGAF** according to your needs, use the provided `config.yaml`.
+To configure **HAMSTRING** according to your needs, use the provided `config.yaml`.
 
 The most relevant settings are related to your specific log line format, the model you want to use, and
 possibly infrastructure.
@@ -116,8 +103,13 @@ The options `pipeline.data_inspection` and `pipeline.data_analysis` are relevant
 `environment` can be fine-tuned to prevent naming collisions for Kafka topics and adjust addressing in your environment.
 
 For more in-depth information on your options, have a look at our
-[official documentation](https://heidgaf.readthedocs.io/en/latest/usage.html), where we provide tables explaining all
+[official documentation](https://hamstring.readthedocs.io/en/latest/usage.html), where we provide tables explaining all
 values in detail.
+
+
+### Testing Your Own Data
+
+If you want to ingest data to the pipeline, you can do so via the zeek container. Either select the interface in the `config.yaml` zeek should be listening on and set `static_analysis: false` or provide PCAPs to Zeek by adding them in the `data/test_pcaps` directory, which is mounted per default for Zeek to ingest static data.
 
 ### Monitoring
 To monitor the system and observe its real-time behavior, multiple Grafana dashboards have been set up.
@@ -202,28 +194,23 @@ Have a look at the following pictures showing examples of how these dashboards m
 
 To train and test our and possibly your own models, we currently rely on the following datasets:
 
-- [CICBellDNS2021](https://www.unb.ca/cic/datasets/dns-2021.html)
 - [DGTA Benchmark](https://data.mendeley.com/datasets/2wzf9bz7xr/1)
 - [DNS Tunneling Queries for Binary Classification](https://data.mendeley.com/datasets/mzn9hvdcxg/1)
 - [UMUDGA - University of Murcia Domain Generation Algorithm Dataset](https://data.mendeley.com/datasets/y8ph45msv8/1)
 - [DGArchive](https://dgarchive.caad.fkie.fraunhofer.de/)
+- [DNS Exfiltration](https://data.mendeley.com/datasets/c4n7fckkz3/3)
 
 We compute all features separately and only rely on the `domain` and `class` for binary classification.
 
 ### Inserting Data for Testing
 
-For testing purposes, we provide multiple scripts in the `scripts` directory. Use `real_logs.dev.py` to send data from
-the datasets into the pipeline. After downloading the dataset and storing it under `<project-root>/data`, run
-```sh
-python scripts/real_logs.dev.py
-```
-to start continuously inserting dataset traffic.
+For testing purposes, you can ingest PCAPs or tap on network interfaces using the zeek-based sensor in its `1.0.0` release. For more information on it, please refer to [the documentation](https://github.com/Hamstring-NDR/hamstring-zeek).
 
 ### Training Your Own Models
 
 > [!IMPORTANT]
 > This is only a brief wrap-up of a custom training process.
-> We highly encourage you to have a look at the [documentation](https://heidgaf.readthedocs.io/en/latest/training.html)
+> We highly encourage you to have a look at the [documentation](https://hamstring.readthedocs.io/en/latest/training.html)
 > for a full description and explanation of the configuration parameters.
 
 We feature two trained models:
@@ -263,7 +250,7 @@ The results will be saved per default to `./results`, if not configured otherwis
 #### Model Tests
 
 ```sh
-> python src/train/train.py test  --dataset <dataset_type> --dataset_path <path/to/your/datasets> --model <model_name> --model_path <path_to_model_version>
+> python src/train/train.py test  --dataset <dataset_type> --dataset_path <path/to/your/datasets> --model <model_name> --model_output_path <path_to_model_version>
 ```
 
 #### Model Explain
@@ -275,6 +262,31 @@ This will create a `rules.txt` file containing the innards of the model, explain
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+
+### Data
+
+> [!IMPORTANT]
+> We support custom schemes.
+
+Depending on your data and usecase, you can customize the data scheme to fit your needs.
+The below configuration is part of the [main configuration file](./config.yaml) which is detailed in our [documentation](https://HAMSTRING.readthedocs.io/en/latest/usage.html#id2)
+
+```yml
+loglines:
+  fields:
+    - [ "timestamp", RegEx, '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$' ]
+    - [ "status_code", ListItem, [ "NOERROR", "NXDOMAIN" ], [ "NXDOMAIN" ] ]
+    - [ "src_ip", IpAddress ]
+    - [ "dns_server_ip", IpAddress ]
+    - [ "domain_name", RegEx, '^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$' ]
+    - [ "record_type", ListItem, [ "A", "AAAA" ] ]
+    - [ "response_ip", IpAddress ]
+    - [ "size", RegEx, '^\d+b$' ]
+```
+
+
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- CONTRIBUTING -->
 ## Contributing
@@ -288,8 +300,8 @@ Don't forget to give the project a star! Thanks again!
 
 ### Top contributors:
 
-<a href="https://github.com/stefanDeveloper/heiDGAF/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=stefanDeveloper/heiDGAF" alt="contrib.rocks image" />
+<a href="https://github.com/hamstring-ndr/hamstring/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=hamstring-ndr/hamstring" alt="contrib.rocks image" />
 </a>
 
 
@@ -307,26 +319,26 @@ Distributed under the EUPL License. See `LICENSE.txt` for more information.
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
 
-[contributors-shield]: https://img.shields.io/github/contributors/stefanDeveloper/heiDGAF.svg?style=for-the-badge
+[contributors-shield]: https://img.shields.io/github/contributors/hamstring-ndr/hamstring.svg?style=for-the-badge
 
-[contributors-url]: https://github.com/stefanDeveloper/heiDGAF/graphs/contributors
+[contributors-url]: https://github.com/hamstring-ndr/hamstring/graphs/contributors
 
-[forks-shield]: https://img.shields.io/github/forks/stefanDeveloper/heiDGAF.svg?style=for-the-badge
+[forks-shield]: https://img.shields.io/github/forks/hamstring-ndr/hamstring.svg?style=for-the-badge
 
-[forks-url]: https://github.com/stefanDeveloper/heiDGAF/network/members
+[forks-url]: https://github.com/hamstring-ndr/hamstring/network/members
 
-[stars-shield]: https://img.shields.io/github/stars/stefanDeveloper/heiDGAF.svg?style=for-the-badge
+[stars-shield]: https://img.shields.io/github/stars/hamstring-ndr/hamstring.svg?style=for-the-badge
 
-[stars-url]: https://github.com/stefanDeveloper/heiDGAF/stargazers
+[stars-url]: https://github.com/hamstring-ndr/hamstring/stargazers
 
-[issues-shield]: https://img.shields.io/github/issues/stefanDeveloper/heiDGAF.svg?style=for-the-badge
+[issues-shield]: https://img.shields.io/github/issues/hamstring-ndr/hamstring.svg?style=for-the-badge
 
-[issues-url]: https://github.com/stefanDeveloper/heiDGAF/issues
+[issues-url]: https://github.com/hamstring-ndr/hamstring/issues
 
-[license-shield]: https://img.shields.io/github/license/stefanDeveloper/heiDGAF.svg?style=for-the-badge
+[license-shield]: https://img.shields.io/github/license/hamstring-ndr/hamstring.svg?style=for-the-badge
 
-[license-url]: https://github.com/stefanDeveloper/heiDGAF/blob/master/LICENSE.txt
+[license-url]: https://github.com/hamstring-ndr/hamstring/blob/master/LICENSE.txt
 
-[coverage-shield]: https://img.shields.io/codecov/c/github/stefanDeveloper/heiDGAF?style=for-the-badge
+[coverage-shield]: https://img.shields.io/codecov/c/github/hamstring-ndr/hamstring?style=for-the-badge
 
-[coverage-url]: https://app.codecov.io/github/stefanDeveloper/heiDGAF
+[coverage-url]: https://app.codecov.io/github/hamstring-ndr/hamstring

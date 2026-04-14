@@ -4,7 +4,7 @@ services:
     container_name: zookeeper
     restart: "unless-stopped"
     networks:
-      - heidgaf
+      - hamstring
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -23,7 +23,7 @@ services:
     container_name: kafka1
     restart: "unless-stopped"
     networks:
-      - heidgaf
+      - hamstring
     ports:
       - "8097:8097"
     depends_on:
@@ -55,7 +55,7 @@ services:
     container_name: kafka2
     restart: "unless-stopped"
     networks:
-      - heidgaf
+      - hamstring
     ports:
       - "8098:8098"
     depends_on:
@@ -88,7 +88,7 @@ services:
     container_name: kafka3
     restart: "unless-stopped"
     networks:
-      - heidgaf
+      - hamstring
     ports:
       - "8099:8099"
     depends_on:
@@ -117,5 +117,5 @@ services:
       - kafka-data3:/var/lib/kafka/data
 
 networks:
-  heidgaf:
+  hamstring:
     external: true
